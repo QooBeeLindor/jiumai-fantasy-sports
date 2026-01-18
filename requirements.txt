@@ -1,0 +1,6 @@
+Flask==2.3.0
+Werkzeug==2.3.0
+yahoo-oauth==2.0
+yahoo-fantasy-api==2.6.0
+gunicorn==21.2.0
+requests==2.31.0

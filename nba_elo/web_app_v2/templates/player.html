@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}{{ player.nickname }} - 玩家详情{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="bi bi-person-circle"></i> {{ player.nickname }}</h2>
+                <p class="text-muted mb-0">玩家编号: {{ player.id }}</p>
+            </div>
+            {% if player.team_key and player.league_id %}
+            <div>
+                <a href="/roster/{{ player.league_id }}/{{ player.team_key }}" 
+                   class="btn btn-primary btn-lg">
+                    <i class="bi bi-person-lines-fill"></i> 查看阵容
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card"><div class="card-body text-center">
+                <h3 class="text-primary">{{ player.current_elo }}</h3>
+                <p class="text-muted">当前ELO</p>
+            </div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card"><div class="card-body text-center">
+                <h3 class="{% if player.elo_change|float > 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ '{:+}'.format(player.elo_change|float) }}
+                </h3>
+                <p class="text-muted">总变化</p>
+            </div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card"><div class="card-body text-center">
+                <h3>{{ player.record }}</h3>
+                <p class="text-muted">战绩</p>
+            </div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card"><div class="card-body text-center">
+                <h3>{{ player.win_rate }}</h3>
+                <p class="text-muted">胜率</p>
+            </div></div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card"><div class="card-header"><h5>参与联赛</h5></div>
+                <div class="card-body">
+                    {% for league in leagues %}
+                    <span class="league-badge mb-2">{{ league.name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card"><div class="card-header"><h5>ELO历史</h5></div>
+                <div class="card-body"><canvas id="eloChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><h5>最近比赛</h5></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead><tr>
+                                <th>周次</th><th>联赛</th><th>对手</th>
+                                <th class="text-center">比分</th>
+                                <th class="text-center">结果</th>
+                                <th class="text-center">ELO变化</th>
+                            </tr></thead>
+                            <tbody>
+                                {% for match in recent_matches %}
+                                <tr>
+                                    <td>第{{ match.week }}周</td>
+                                    <td><span class="badge bg-secondary">{{ match.league }}</span></td>
+                                    <td>{{ match.opponent }}</td>
+                                    <td class="text-center">{{ match.score }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{{ match.result_class }}">{{ match.result }}</span>
+                                    </td>
+                                    <td class="text-center {{ match.elo_change_class }}">
+                                        <strong>{{ match.elo_change }}</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const eloHistory = {{ elo_history | safe }};
+const ctx = document.getElementById('eloChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: eloHistory.map(d => `W${d.week}`),
+        datasets: [{
+            label: 'ELO',
+            data: eloHistory.map(d => d.elo),
+            borderColor: 'rgb(102, 126, 234)',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: false } }
+    }
+});
+</script>
+{% endblock %}

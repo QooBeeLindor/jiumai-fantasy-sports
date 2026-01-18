@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铁人团队赛排行榜</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #2d3748;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .trophy {
+            font-size: 36px;
+        }
+
+        .update-time {
+            color: #718096;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .status-badges {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .badge.completed {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge.active {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .search-box {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .search-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .leaderboard-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .leaderboard-table th {
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .leaderboard-table th.center {
+            text-align: center;
+        }
+
+        .leaderboard-table tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.3s;
+        }
+
+        .leaderboard-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        .leaderboard-table td {
+            padding: 15px 10px;
+            font-size: 14px;
+        }
+
+        .rank-cell {
+            font-weight: 700;
+            font-size: 16px;
+            color: #2d3748;
+            text-align: center;
+            width: 60px;
+        }
+
+        .rank-cell.top3 {
+            color: #d69e2e;
+        }
+
+        .team-name {
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .team-name a {
+            color: #4a5568;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .team-name a:hover {
+            color: #667eea;
+        }
+
+        .score-cell {
+            font-weight: 700;
+            font-size: 18px;
+            color: #667eea;
+            text-align: center;
+        }
+
+        .sport-score {
+            text-align: center;
+            color: #4a5568;
+        }
+
+        .sport-score.zero {
+            color: #cbd5e0;
+        }
+
+        .completed-badge {
+            display: inline-block;
+            background: #e6fffa;
+            color: #234e52;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .leaderboard-table {
+                font-size: 12px;
+            }
+
+            .leaderboard-table th,
+            .leaderboard-table td {
+                padding: 10px 5px;
+            }
+
+            .score-cell {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="trophy">🏆</span> 铁人团队赛排行榜</h1>
+            {% if teams and teams[0][9] %}
+            <p class="update-time">最后更新: {{ last_update }}</p>
+            {% endif %}
+        </div>
+
+        <div class="status-badges">
+            <span class="badge {{ 'completed' if league_status.get('MLB') == 'completed' else 'active' }}">
+                MLB {{ '✓ 已结束' if league_status.get('MLB') == 'completed' else '⚡ 进行中' }}
+            </span>
+            <span class="badge {{ 'completed' if league_status.get('NFL') == 'completed' else 'active' }}">
+                NFL {{ '✓ 已结束' if league_status.get('NFL') == 'completed' else '⚡ 进行中' }}
+            </span>
+            <span class="badge {{ 'completed' if league_status.get('NHL') == 'completed' else 'active' }}">
+                NHL {{ '✓ 已结束' if league_status.get('NHL') == 'completed' else '⚡ 进行中' }}
+            </span>
+            <span class="badge {{ 'completed' if league_status.get('NBA') == 'completed' else 'active' }}">
+                NBA {{ '✓ 已结束' if league_status.get('NBA') == 'completed' else '⚡ 进行中' }}
+            </span>
+            <span class="badge {{ 'completed' if league_status.get('EPL') == 'completed' else 'active' }}">
+                EPL {{ '✓ 已结束' if league_status.get('EPL') == 'completed' else '⚡ 进行中' }}
+            </span>
+        </div>
+
+        <div class="search-box">
+            <input type="text" class="search-input" id="searchInput" placeholder="搜索球队...">
+        </div>
+
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th class="center">排名</th>
+                    <th>球队</th>
+                    <th class="center">总分</th>
+                    <th class="center">MLB</th>
+                    <th class="center">NFL</th>
+                    <th class="center">NHL</th>
+                    <th class="center">NBA</th>
+                    <th class="center">EPL</th>
+                    <th class="center">完成项目</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+                {% for team in teams %}
+                <tr>
+                    <td class="rank-cell {% if team[0] <= 3 %}top3{% endif %}">{{ team[0] }}</td>
+                    <td class="team-name">
+                        <a href="/irongroup/team/{{ team[2] }}">{{ team[2] }}</a>
+                    </td>
+                    <td class="score-cell">{{ "%.1f"|format(team[3]) }}</td>
+                    <td class="sport-score {% if team[4] == 0 %}zero{% endif %}">
+                        {{ "%.1f"|format(team[4]) if team[4] > 0 else '-' }}
+                    </td>
+                    <td class="sport-score {% if team[5] == 0 %}zero{% endif %}">
+                        {{ "%.1f"|format(team[5]) if team[5] > 0 else '-' }}
+                    </td>
+                    <td class="sport-score {% if team[6] == 0 %}zero{% endif %}">
+                        {{ "%.1f"|format(team[6]) if team[6] > 0 else '-' }}
+                    </td>
+                    <td class="sport-score {% if team[7] == 0 %}zero{% endif %}">
+                        {{ "%.1f"|format(team[7]) if team[7] > 0 else '-' }}
+                    </td>
+                    <td class="sport-score {% if team[8] == 0 %}zero{% endif %}">
+                        {{ "%.1f"|format(team[8]) if team[8] > 0 else '-' }}
+                    </td>
+                    <td class="center">
+                        <span class="completed-badge">{{ team[9] }}/5</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="back-link">
+            <a href="/irongroup/landing">← 返回首页</a>
+        </div>
+    </div>
+
+    <script>
+        // 搜索功能
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#leaderboardBody tr');
+            
+            rows.forEach(row => {
+                const teamName = row.querySelector('.team-name').textContent.toLowerCase();
+                if (teamName.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

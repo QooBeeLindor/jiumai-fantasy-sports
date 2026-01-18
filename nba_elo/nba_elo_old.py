@@ -1,0 +1,736 @@
+#!/usr/bin/env python3
+"""
+NBA Fantasy ELO Rating System
+自动从Yahoo Fantasy获取数据并计算跨联赛ELO评分
+"""
+
+import json
+import sqlite3
+from datetime import datetime
+from pathlib import Path
+import sys
+
+# 检查并安装必要的包
+def check_and_install_packages():
+
+# ============================================================
+# 禁用浏览器自动打开 (自动添加的补丁)
+# ============================================================
+import webbrowser
+_original_browser_open = webbrowser.open
+
+def _no_browser_open(url, new=0, autoraise=True):
+    """阻止自动打开浏览器，但显示URL供用户手动复制"""
+    print(f"\n🔗 请在浏览器中手动打开以下URL进行认证:")
+    print(f"   {url}")
+    print(f"\n💡 提示: 复制上方URL到浏览器，完成认证后返回此处输入验证码")
+    return True
+
+webbrowser.open = _no_browser_open
+print("ℹ️  浏览器自动打开已禁用 (需要手动复制URL)")
+# ============================================================
+
+    """检查并安装必要的Python包"""
+    required_packages = [
+        'yahoo-fantasy-api',
+        'openpyxl',
+        'requests'
+    ]
+    
+    import subprocess
+    for package in required_packages:
+        try:
+            __import__(package.replace('-', '_'))
+        except ImportError:
+            print(f"安装 {package}...")
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
+                                 package, '--break-system-packages', '-q'])
+
+check_and_install_packages()
+
+from yahoo_oauth import OAuth2
+import yahoo_fantasy_api as yfa
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+
+
+class NBAEloSystem:
+    """NBA范特西联赛ELO评分系统"""
+    
+    def __init__(self, config_file='config.json'):
+        """初始化系统"""
+        self.config = self.load_config(config_file)
+        self.player_nicknames = self.load_player_nicknames()
+        self.db_path = 'nba_elo.db'
+        self.init_database()
+        
+    def load_config(self, config_file):
+        """加载配置文件"""
+        with open(config_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    
+    def load_player_nicknames(self):
+        """加载玩家昵称映射"""
+        try:
+            with open('player_nicknames.json', 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data.get('player_nicknames', {})
+        except FileNotFoundError:
+            return {}
+        except Exception as e:
+            print(f"⚠️  加载玩家昵称配置失败: {e}")
+            return {}
+    
+    def init_database(self):
+        """初始化SQLite数据库"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # 玩家表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS players (
+                player_id TEXT PRIMARY KEY,
+                yahoo_guid TEXT UNIQUE,
+                nickname TEXT,
+                current_elo REAL DEFAULT 1500,
+                initial_elo REAL DEFAULT 1500,
+                games_played INTEGER DEFAULT 0,
+                wins INTEGER DEFAULT 0,
+                losses INTEGER DEFAULT 0,
+                ties INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # 比赛记录表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS matches (
+                match_id TEXT PRIMARY KEY,
+                league_id TEXT,
+                league_name TEXT,
+                week INTEGER,
+                season INTEGER,
+                team1_id TEXT,
+                team1_manager_id TEXT,
+                team1_score REAL,
+                team1_elo_before REAL,
+                team1_elo_after REAL,
+                team2_id TEXT,
+                team2_manager_id TEXT,
+                team2_score REAL,
+                team2_elo_before REAL,
+                team2_elo_after REAL,
+                result TEXT,
+                match_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (team1_manager_id) REFERENCES players(player_id),
+                FOREIGN KEY (team2_manager_id) REFERENCES players(player_id)
+            )
+        ''')
+        
+        # 联赛信息表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS leagues (
+                league_id TEXT PRIMARY KEY,
+                league_name TEXT,
+                season INTEGER,
+                level INTEGER,
+                num_teams INTEGER,
+                current_week INTEGER,
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+        print("✅ 数据库初始化完成")
+    
+    def authenticate_yahoo(self):
+        """Yahoo OAuth认证"""
+        print("\n🔐 开始Yahoo认证...")
+        
+        oauth_file = 'oauth2.json'
+        
+        # 创建OAuth配置
+        oauth_config = {
+            'consumer_key': self.config['yahoo_client_id'],
+            'consumer_secret': self.config['yahoo_client_secret']
+        }
+        
+        # 保存OAuth配置
+        with open(oauth_file, 'w') as f:
+            json.dump(oauth_config, f)
+        
+        try:
+            # 初始化OAuth
+            sc = OAuth2(None, None, from_file=oauth_file)
+            
+            if not sc.token_is_valid():
+                print("\n⚠️  需要重新认证")
+                print("浏览器将打开Yahoo登录页面...")
+                print("请登录并授权,然后复制验证码回来")
+            
+            return sc
+        except Exception as e:
+            print(f"❌ 认证失败: {e}")
+            print("\n请确保:")
+            print("1. Client ID和Secret正确")
+            print("2. 网络连接正常")
+            print("3. Yahoo账号可以访问这些联赛")
+            return None
+    
+    def get_league_data(self, sc, league_id):
+        """获取单个联赛的数据"""
+        try:
+            gm = yfa.Game(sc, 'nba')
+            lg = gm.to_league(f'nba.l.{league_id}')
+            
+            # 获取基本信息
+            settings = lg.settings()
+            standings = lg.standings()
+            teams = lg.teams()
+            
+            return {
+                'league': lg,
+                'settings': settings,
+                'standings': standings,
+                'teams': teams
+            }
+        except Exception as e:
+            print(f"❌ 获取联赛 {league_id} 数据失败: {e}")
+            return None
+    
+    def extract_manager_info(self, team_data):
+        """提取球队管理者信息"""
+        manager_id = None
+        team_name = None
+        
+        # 从team数据中提取（teams()返回的格式）
+        if isinstance(team_data, dict):
+            # 优先使用team_name作为玩家显示名称（因为Yahoo API隐藏了nickname）
+            team_name = team_data.get('name', '未知球队')
+            
+            if 'managers' in team_data:
+                managers = team_data['managers']
+                if managers and len(managers) > 0:
+                    manager = managers[0]
+                    if isinstance(manager, dict) and 'manager' in manager:
+                        manager = manager['manager']
+                    manager_id = manager.get('guid') or manager.get('manager_id')
+                    
+                    # 如果有自定义昵称配置，使用自定义昵称
+                    if manager_id and manager_id in self.player_nicknames:
+                        team_name = self.player_nicknames[manager_id]
+        
+        return manager_id, team_name
+    
+    def process_team_data(self, cursor, teams_dict):
+        """处理球队数据，提取管理者信息"""
+        team_managers = {}
+        
+        for team_key, team_data in teams_dict.items():
+            manager_id, team_name = self.extract_manager_info(team_data)
+            if manager_id:
+                team_managers[team_key] = {
+                    'manager_id': manager_id,
+                    'manager_name': team_name,
+                    'team_name': team_name
+                }
+                # 添加或更新玩家（使用team_name作为昵称）
+                self.add_or_update_player(cursor, manager_id, team_name)
+        
+        return team_managers
+    
+    def add_or_update_player(self, cursor, manager_id, manager_name):
+        """添加或更新玩家信息"""
+        if not manager_id:
+            return None
+        
+        # 检查玩家是否存在
+        cursor.execute('SELECT player_id FROM players WHERE yahoo_guid = ?', (manager_id,))
+        result = cursor.fetchone()
+        
+        if result:
+            # 更新昵称
+            cursor.execute('''
+                UPDATE players 
+                SET nickname = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE yahoo_guid = ?
+            ''', (manager_name, manager_id))
+        else:
+            # 新建玩家
+            player_id = f"player_{manager_id}"
+            initial_elo = self.config['elo_settings']['initial_rating']
+            cursor.execute('''
+                INSERT INTO players (player_id, yahoo_guid, nickname, current_elo, initial_elo)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (player_id, manager_id, manager_name, initial_elo, initial_elo))
+        
+        return manager_id
+    
+    def calculate_elo_change(self, rating_a, rating_b, score_a, score_b):
+        """
+        计算ELO评分变化（考虑分差）
+        
+        分差影响：
+        - 大胜（>30%）: K因子 × 1.2
+        - 中等胜利（10-30%）: K因子 × 1.0
+        - 小胜（<10%）: K因子 × 0.8
+        - 平局: 标准计算
+        """
+        base_k = self.config['elo_settings']['k_factor']
+        
+        # 预期得分
+        expected_a = 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
+        
+        # 实际得分
+        if score_a > score_b:
+            actual_a = 1.0
+        elif score_a < score_b:
+            actual_a = 0.0
+        else:
+            actual_a = 0.5
+        
+        # 根据分差调整K因子
+        total_score = score_a + score_b
+        if total_score > 0:
+            score_diff = abs(score_a - score_b)
+            diff_percentage = score_diff / total_score
+            
+            if actual_a != 0.5:  # 非平局
+                if diff_percentage > 0.30:  # 大胜/大败 (>30%)
+                    k = base_k * 1.2
+                elif diff_percentage < 0.10:  # 小胜/小败 (<10%)
+                    k = base_k * 0.8
+                else:  # 中等胜利 (10-30%)
+                    k = base_k * 1.0
+            else:  # 平局
+                k = base_k
+        else:
+            k = base_k
+        
+        # ELO变化
+        change = k * (actual_a - expected_a)
+        
+        return change, 1 - actual_a
+    
+    def update_elo_ratings(self):
+        """重新计算所有ELO评分"""
+        print("\n📊 重新计算ELO评分...")
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # 重置所有玩家ELO为初始值
+        cursor.execute('''
+            UPDATE players 
+            SET current_elo = initial_elo,
+                games_played = 0,
+                wins = 0,
+                losses = 0,
+                ties = 0
+        ''')
+        
+        # 按时间顺序获取所有比赛
+        cursor.execute('''
+            SELECT match_id, team1_manager_id, team1_score, 
+                   team2_manager_id, team2_score
+            FROM matches
+            ORDER BY season, week, match_date
+        ''')
+        
+        matches = cursor.fetchall()
+        
+        for match in matches:
+            match_id, mgr1_id, score1, mgr2_id, score2 = match
+            
+            # 获取当前ELO
+            cursor.execute('SELECT current_elo FROM players WHERE yahoo_guid = ?', (mgr1_id,))
+            elo1 = cursor.fetchone()[0]
+            
+            cursor.execute('SELECT current_elo FROM players WHERE yahoo_guid = ?', (mgr2_id,))
+            elo2 = cursor.fetchone()[0]
+            
+            # 计算ELO变化
+            change1, change2 = self.calculate_elo_change(elo1, elo2, score1, score2)
+            
+            new_elo1 = elo1 + change1
+            new_elo2 = elo2 - change1  # change2 应该和change1相反
+            
+            # 更新数据库
+            cursor.execute('''
+                UPDATE players 
+                SET current_elo = ?,
+                    games_played = games_played + 1,
+                    wins = wins + ?,
+                    losses = losses + ?,
+                    ties = ties + ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE yahoo_guid = ?
+            ''', (new_elo1, 1 if score1 > score2 else 0, 
+                  1 if score1 < score2 else 0, 1 if score1 == score2 else 0, mgr1_id))
+            
+            cursor.execute('''
+                UPDATE players 
+                SET current_elo = ?,
+                    games_played = games_played + 1,
+                    wins = wins + ?,
+                    losses = losses + ?,
+                    ties = ties + ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE yahoo_guid = ?
+            ''', (new_elo2, 1 if score2 > score1 else 0,
+                  1 if score2 < score1 else 0, 1 if score1 == score2 else 0, mgr2_id))
+            
+            # 更新比赛记录中的ELO
+            cursor.execute('''
+                UPDATE matches
+                SET team1_elo_before = ?,
+                    team1_elo_after = ?,
+                    team2_elo_before = ?,
+                    team2_elo_after = ?
+                WHERE match_id = ?
+            ''', (elo1, new_elo1, elo2, new_elo2, match_id))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ 已处理 {len(matches)} 场比赛")
+    
+    def export_to_excel(self, output_file='nba_elo_rankings.xlsx'):
+        """导出ELO排名到Excel"""
+        print(f"\n📁 导出Excel报表到: {output_file}")
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        wb = Workbook()
+        wb.remove(wb.active)
+        
+        # ========== 玩家排名表 ==========
+        ws_rankings = wb.create_sheet("玩家排名")
+        
+        ws_rankings['A1'] = 'NBA范特西联赛 ELO排名榜'
+        ws_rankings['A1'].font = Font(size=16, bold=True, color='0000FF')
+        ws_rankings.merge_cells('A1:G1')
+        
+        headers = ['排名', '玩家昵称', '当前ELO', 'ELO变化', '已打场数', '胜-负-平', '胜率']
+        for col, header in enumerate(headers, 1):
+            cell = ws_rankings.cell(row=3, column=col)
+            cell.value = header
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
+            cell.alignment = Alignment(horizontal='center')
+        
+        # 获取玩家数据并排序
+        cursor.execute('''
+            SELECT nickname, current_elo, initial_elo, games_played, wins, losses, ties
+            FROM players
+            ORDER BY current_elo DESC
+        ''')
+        
+        players = cursor.fetchall()
+        
+        for rank, player in enumerate(players, 1):
+            row = rank + 3
+            nickname, elo, initial_elo, games, wins, losses, ties = player
+            
+            ws_rankings.cell(row, 1, rank)
+            ws_rankings.cell(row, 2, nickname or '未知')
+            ws_rankings.cell(row, 3, round(elo, 1))
+            ws_rankings.cell(row, 4, round(elo - initial_elo, 1))
+            ws_rankings.cell(row, 5, games)
+            ws_rankings.cell(row, 6, f"{wins}-{losses}-{ties}")
+            
+            if games > 0:
+                win_rate = (wins + 0.5 * ties) / games * 100
+                ws_rankings.cell(row, 7, f"{win_rate:.1f}%")
+            else:
+                ws_rankings.cell(row, 7, "-")
+            
+            # 格式化
+            for col in range(1, 8):
+                ws_rankings.cell(row, col).alignment = Alignment(horizontal='center')
+        
+        # 设置列宽
+        ws_rankings.column_dimensions['A'].width = 8
+        ws_rankings.column_dimensions['B'].width = 20
+        ws_rankings.column_dimensions['C'].width = 12
+        ws_rankings.column_dimensions['D'].width = 12
+        ws_rankings.column_dimensions['E'].width = 12
+        ws_rankings.column_dimensions['F'].width = 15
+        ws_rankings.column_dimensions['G'].width = 10
+        
+        # ========== 比赛记录表 ==========
+        ws_matches = wb.create_sheet("比赛记录")
+        
+        ws_matches['A1'] = '所有比赛记录'
+        ws_matches['A1'].font = Font(size=14, bold=True)
+        
+        match_headers = ['联赛', '周次', '玩家A', 'A得分', 'A赛前ELO', 'A赛后ELO', 
+                        '玩家B', 'B得分', 'B赛前ELO', 'B赛后ELO', '结果']
+        
+        for col, header in enumerate(match_headers, 1):
+            cell = ws_matches.cell(row=3, column=col)
+            cell.value = header
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='70AD47', end_color='70AD47', fill_type='solid')
+            cell.alignment = Alignment(horizontal='center')
+        
+        # 获取比赛记录
+        cursor.execute('''
+            SELECT m.league_name, m.week, 
+                   p1.nickname, m.team1_score, m.team1_elo_before, m.team1_elo_after,
+                   p2.nickname, m.team2_score, m.team2_elo_before, m.team2_elo_after,
+                   m.result
+            FROM matches m
+            JOIN players p1 ON m.team1_manager_id = p1.yahoo_guid
+            JOIN players p2 ON m.team2_manager_id = p2.yahoo_guid
+            ORDER BY m.season DESC, m.week DESC
+            LIMIT 200
+        ''')
+        
+        matches = cursor.fetchall()
+        
+        for idx, match in enumerate(matches, 4):
+            for col, value in enumerate(match, 1):
+                cell = ws_matches.cell(idx, col)
+                if isinstance(value, float):
+                    cell.value = round(value, 1)
+                else:
+                    cell.value = value
+                cell.alignment = Alignment(horizontal='center')
+        
+        # 设置列宽
+        for col in range(1, 12):
+            ws_matches.column_dimensions[chr(64 + col)].width = 12
+        
+        conn.close()
+        
+        # 保存Excel
+        wb.save(output_file)
+        print(f"✅ Excel报表已生成: {output_file}")
+        
+        return output_file
+    
+    def sync_all_leagues(self):
+        """同步所有联赛数据"""
+        print("\n🔄 开始同步联赛数据...")
+        
+        sc = self.authenticate_yahoo()
+        if not sc:
+            return False
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        total_matches = 0
+        
+        for league_config in self.config['leagues']:
+            league_id = league_config['league_id']
+            league_name = league_config['league_name']
+            
+            print(f"\n📥 正在获取联赛: {league_name} (ID: {league_id})")
+            
+            league_data = self.get_league_data(sc, league_id)
+            
+            if not league_data:
+                print(f"⚠️  跳过联赛 {league_name}")
+                continue
+            
+            settings = league_data['settings']
+            teams_dict = league_data['teams']
+            
+            # 使用Yahoo API返回的真实联盟名称
+            real_league_name = settings.get('name', league_name)
+            print(f"   联盟名称: {real_league_name}")
+            
+            # 处理球队和管理者信息
+            team_managers = self.process_team_data(cursor, teams_dict)
+            print(f"   找到 {len(team_managers)} 支球队")
+            
+            # 获取当前周次
+            current_week = int(settings.get('current_week', 1))
+            season = int(settings.get('season', 2025))
+            
+            print(f"   当前周次: {current_week}, 赛季: {season}")
+            
+            # 获取每周的比赛数据
+            for week in range(1, current_week + 1):
+                try:
+                    print(f"   正在获取第 {week} 周比赛...", end='')
+                    
+                    matchups_raw = league_data['league'].matchups(week)
+                    
+                    if not matchups_raw:
+                        print(" 无数据")
+                        continue
+                    
+                    # 从返回的数据中提取真正的matchups
+                    # 结构: matchups_raw['fantasy_content']['league'][1]['scoreboard']['0']['matchups']
+                    matches_count = 0
+                    
+                    try:
+                        fantasy_content = matchups_raw.get('fantasy_content', {})
+                        league_list = fantasy_content.get('league', [])
+                        
+                        if len(league_list) < 2:
+                            print(" 无数据")
+                            continue
+                        
+                        scoreboard = league_list[1].get('scoreboard', {})
+                        scoreboard_data = scoreboard.get('0', {})
+                        matchups_dict = scoreboard_data.get('matchups', {})
+                        
+                        # 遍历每场比赛
+                        for matchup_key, matchup_wrapper in matchups_dict.items():
+                            # 跳过count等非比赛数据
+                            if matchup_key == 'count' or not isinstance(matchup_wrapper, dict):
+                                continue
+                            
+                            matchup_data = matchup_wrapper.get('matchup', {})
+                            
+                            if not matchup_data:
+                                continue
+                            
+                            # 提取比赛信息
+                            # 数据结构: matchup_data['0']['teams']
+                            matchup_inner = matchup_data.get('0', {})
+                            teams_dict = matchup_inner.get('teams', {})
+                            
+                            if teams_dict and '0' in teams_dict and '1' in teams_dict:
+                                team1_data = teams_dict['0'].get('team', [])
+                                team2_data = teams_dict['1'].get('team', [])
+                                
+                                # 提取team_key和分数
+                                team1_key = None
+                                team2_key = None
+                                team1_score = 0
+                                team2_score = 0
+                                
+                                # team数据是一个列表，第一个元素是基本信息列表，第二个是统计数据
+                                if len(team1_data) >= 2:
+                                    team1_info = team1_data[0]
+                                    team1_stats = team1_data[1]
+                                    
+                                    # 从info中找team_key
+                                    for item in team1_info:
+                                        if isinstance(item, dict) and 'team_key' in item:
+                                            team1_key = item['team_key']
+                                            break
+                                    
+                                    # 从stats中找得分
+                                    if 'team_points' in team1_stats:
+                                        team1_score = float(team1_stats['team_points'].get('total', 0))
+                                
+                                if len(team2_data) >= 2:
+                                    team2_info = team2_data[0]
+                                    team2_stats = team2_data[1]
+                                    
+                                    for item in team2_info:
+                                        if isinstance(item, dict) and 'team_key' in item:
+                                            team2_key = item['team_key']
+                                            break
+                                    
+                                    if 'team_points' in team2_stats:
+                                        team2_score = float(team2_stats['team_points'].get('total', 0))
+                                
+                                # 如果成功提取了数据，保存到数据库
+                                if team1_key and team2_key and team1_key in team_managers and team2_key in team_managers:
+                                    mgr1 = team_managers[team1_key]
+                                    mgr2 = team_managers[team2_key]
+                                    
+                                    # 确定结果
+                                    if team1_score > team2_score:
+                                        result = 'team1_win'
+                                    elif team2_score > team1_score:
+                                        result = 'team2_win'
+                                    else:
+                                        result = 'tie'
+                                    
+                                    # 创建比赛ID
+                                    match_id = f"{league_id}_w{week}_{team1_key}_{team2_key}"
+                                    
+                                    # 插入或更新比赛记录
+                                    cursor.execute('''
+                                        INSERT OR REPLACE INTO matches 
+                                        (match_id, league_id, league_name, week, season,
+                                         team1_id, team1_manager_id, team1_score,
+                                         team2_id, team2_manager_id, team2_score, result)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    ''', (match_id, league_id, real_league_name, week, season,
+                                          team1_key, mgr1['manager_id'], team1_score,
+                                          team2_key, mgr2['manager_id'], team2_score, result))
+                                    
+                                    matches_count += 1
+                                    total_matches += 1
+                    
+                    except Exception as e:
+                        # 解析matchups数据时出错
+                        pass
+                    
+                    print(f" {matches_count} 场")
+                    
+                except Exception as e:
+                    print(f" 错误: {e}")
+                    continue
+            
+            print(f"✅ 联赛 {real_league_name} 数据同步完成")
+            
+            # 每个联赛处理完提交一次，减少锁定时间
+            conn.commit()
+        
+        conn.close()
+        
+        print(f"\n✅ 所有联赛同步完成！共 {total_matches} 场比赛")
+        
+        return True
+
+
+def main():
+    """主函数"""
+    print("=" * 60)
+    print("🏀 NBA Fantasy ELO Rating System")
+    print("=" * 60)
+    
+    # 初始化系统
+    system = NBAEloSystem()
+    
+    print("\n选择操作:")
+    print("1. 同步Yahoo数据(首次使用或更新数据)")
+    print("2. 导出Excel报表")
+    print("3. 查看当前排名")
+    print("4. 退出")
+    
+    choice = input("\n请输入选项 (1-4): ").strip()
+    
+    if choice == '1':
+        system.sync_all_leagues()
+        system.update_elo_ratings()
+    elif choice == '2':
+        output = system.export_to_excel()
+        print(f"\n✅ 报表已保存: {output}")
+    elif choice == '3':
+        conn = sqlite3.connect(system.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT nickname, current_elo, wins, losses, ties
+            FROM players
+            ORDER BY current_elo DESC
+            LIMIT 10
+        ''')
+        
+        print("\n🏆 Top 10 排名:")
+        print("-" * 50)
+        for rank, (name, elo, w, l, t) in enumerate(cursor.fetchall(), 1):
+            print(f"{rank:2d}. {name:20s} - ELO: {elo:7.1f} ({w}-{l}-{t})")
+        
+        conn.close()
+    elif choice == '4':
+        print("\n👋 再见!")
+    else:
+        print("\n❌ 无效选项")
+
+
+if __name__ == '__main__':
+    main()

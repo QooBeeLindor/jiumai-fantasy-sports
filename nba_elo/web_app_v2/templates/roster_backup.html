@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team_name }} - 球员阵容{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-3">
+                <i class="bi bi-person-lines-fill"></i> {{ team_name }} 
+                <small class="text-muted">球员阵容</small>
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item active">阵容</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- 阵容统计 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ players|length }}</h3>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-people"></i> 阵容人数
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">{{ players|selectattr('status', 'equalto', 'active')|list|length }}</h3>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-check-circle"></i> 健康球员
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ players|selectattr('status', 'equalto', 'IL')|list|length }}</h3>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> 伤病名单
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <p class="mb-0">
+                        <small class="text-muted">联赛ID</small>
+                    </p>
+                    <h5 class="text-info mb-0">{{ league_id }}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 阵容列表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-stars"></i> 球员名单
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 5%;">#</th>
+                                    <th style="width: 30%;">球员姓名</th>
+                                    <th style="width: 15%;">位置类型</th>
+                                    <th style="width: 20%;">可选位置</th>
+                                    <th style="width: 15%;">当前位置</th>
+                                    <th style="width: 15%;">状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player in players %}
+                                <tr>
+                                    <td class="text-center align-middle">
+                                        <strong>{{ loop.index }}</strong>
+                                    </td>
+                                    <td class="align-middle">
+                                        <strong>{{ player.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">ID: {{ player.player_id }}</small>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        <span class="badge bg-secondary">
+                                            {{ player.position_type }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        <small>{{ player.eligible_positions }}</small>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        <span class="badge bg-info">
+                                            {{ player.selected_position }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        {% if player.status == 'active' %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> 健康
+                                            </span>
+                                        {% elif player.status == 'IL' %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-exclamation-triangle"></i> 伤病
+                                            </span>
+                                        {% elif player.status == 'OUT' or player.status == 'O' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle"></i> 缺阵
+                                            </span>
+                                        {% elif player.status == 'DTD' %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-question-circle"></i> 观察
+                                            </span>
+                                        {% elif player.status == 'GTD' %}
+                                            <span class="badge bg-info text-dark">
+                                                <i class="bi bi-clock"></i> 赛前观察
+                                            </span>
+                                        {% elif player.status == '-' %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> 健康
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                {{ player.status }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 说明信息 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6 class="alert-heading">
+                    <i class="bi bi-info-circle-fill"></i> 阵容说明
+                </h6>
+                <ul class="mb-0">
+                    <li><strong>位置类型：</strong>球员的主要位置（如G=后卫，F=前锋，C=中锋）</li>
+                    <li><strong>可选位置：</strong>该球员可以放置的所有位置</li>
+                    <li><strong>当前位置：</strong>球员在阵容中的当前位置</li>
+                    <li><strong>状态：</strong>
+                        <span class="badge bg-success">健康</span> = 可以上场，
+                        <span class="badge bg-warning text-dark">伤病/观察</span> = 伤病名单或日常观察，
+                        <span class="badge bg-danger">缺阵</span> = 确认缺阵
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 返回按钮 -->
+    <div class="row mt-3 mb-5">
+        <div class="col-12 text-center">
+            <a href="javascript:history.back()" class="btn btn-lg btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> 返回上一页
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 增强表格样式 */
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+}
+
+/* Badge样式优化 */
+.badge {
+    font-size: 0.85rem;
+    padding: 0.4em 0.6em;
+}
+
+/* 卡片阴影 */
+.card.shadow-sm {
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.075);
+}
+
+/* 状态图标动画 */
+.badge i {
+    margin-right: 0.2em;
+}
+</style>
+{% endblock %}

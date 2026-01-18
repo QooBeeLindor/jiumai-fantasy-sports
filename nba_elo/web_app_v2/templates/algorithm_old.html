@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}ELO算法详解{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">
+        <i class="bi bi-calculator"></i> ELO算法详解
+    </h1>
+
+    <!-- 算法概述 -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-info-circle"></i> 算法概述</h4>
+        </div>
+        <div class="card-body">
+            <p class="lead">ELO等级分系统是一种评估竞技比赛中参与者相对技能水平的方法。</p>
+            <ul>
+                <li><strong>起源：</strong>由匈牙利裔美国物理学家Arpad Elo开发，最初用于国际象棋</li>
+                <li><strong>特点：</strong>基于对局结果动态调整分数，反映真实水平变化</li>
+                <li><strong>应用：</strong>九麦范特西联赛使用改进版ELO系统，考虑比分差异</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 核心公式 -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0"><i class="bi bi-calculator-fill"></i> 核心计算公式</h4>
+        </div>
+        <div class="card-body">
+            <h5>1. 期望得分（Expected Score）</h5>
+            <p>根据两名选手的ELO差距，计算A选手的期望胜率：</p>
+            <div class="formula-box bg-light p-3 rounded mb-3">
+                \[E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}\]
+            </div>
+            <p>其中：</p>
+            <ul>
+                <li>\(E_A\) = 选手A的期望得分</li>
+                <li>\(R_A\) = 选手A的当前ELO分数</li>
+                <li>\(R_B\) = 选手B的当前ELO分数</li>
+            </ul>
+
+            <h5 class="mt-4">2. 实际得分（Actual Score）</h5>
+            <p>根据比赛的实际比分计算选手A的实际得分：</p>
+            <div class="formula-box bg-light p-3 rounded mb-3">
+                \[S_A = \frac{\text{Score}_A}{\text{Score}_A + \text{Score}_B}\]
+            </div>
+            <p>这里我们使用比分比例而非简单的胜负（1/0.5/0），使得大比分胜利获得更多奖励。</p>
+
+            <h5 class="mt-4">3. 动态K因子（Dynamic K-Factor）</h5>
+            <p>K因子决定了每场比赛对ELO的影响程度。我们采用动态K因子：</p>
+            <div class="formula-box bg-light p-3 rounded mb-3">
+                \[\text{比分比率} = \frac{\max(\text{Score}_A, \text{Score}_B)}{\min(\text{Score}_A, \text{Score}_B)}\]
+                \[K = K_{\text{基础}} \times \left(0.5 + 0.5 \times \text{比分比率}\right)\]
+            </div>
+            <p>其中：</p>
+            <ul>
+                <li>\(K_{\text{基础}} = 32\)（标准值）</li>
+                <li>比分越悬殊，K因子越大，ELO变化越大</li>
+            </ul>
+
+            <h5 class="mt-4">4. ELO变化（ELO Change）</h5>
+            <p>最终的ELO分数变化：</p>
+            <div class="formula-box bg-light p-3 rounded mb-3">
+                \[\Delta R_A = K \times (S_A - E_A)\]
+            </div>
+            <p>新的ELO分数：</p>
+            <div class="formula-box bg-light p-3 rounded mb-3">
+                \[R_A^{\text{新}} = R_A^{\text{旧}} + \Delta R_A\]
+            </div>
+        </div>
+    </div>
+
+    <!-- 参数说明 -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0"><i class="bi bi-sliders"></i> 参数说明</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>参数</th>
+                        <th>值</th>
+                        <th>说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>基础ELO</strong></td>
+                        <td>1500</td>
+                        <td>所有新玩家的初始ELO分数</td>
+                    </tr>
+                    <tr>
+                        <td><strong>基础K因子</strong></td>
+                        <td>32</td>
+                        <td>标准的K因子值，控制ELO变化速度</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ELO差距基数</strong></td>
+                        <td>400</td>
+                        <td>400分差距对应约10倍胜率差异</td>
+                    </tr>
+                    <tr>
+                        <td><strong>K因子调节范围</strong></td>
+                        <td>16 - 64</td>
+                        <td>根据比分差异，K因子在此范围内变化</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 计算实例 -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0"><i class="bi bi-clipboard-data"></i> 计算实例</h4>
+        </div>
+        <div class="card-body">
+            <!-- 实例1 -->
+            <h5>实例1：势均力敌的比赛 (7-6)</h5>
+            <div class="bg-light p-3 rounded mb-3">
+                <p><strong>初始状态：</strong></p>
+                <ul>
+                    <li>选手A ELO: 1550</li>
+                    <li>选手B ELO: 1530</li>
+                    <li>比分: 7-6 (A胜)</li>
+                </ul>
+                
+                <p><strong>计算过程：</strong></p>
+                <ol>
+                    <li>期望得分：\(E_A = \frac{1}{1 + 10^{(1530-1550)/400}} = 0.529\)</li>
+                    <li>实际得分：\(S_A = \frac{7}{7+6} = 0.538\)</li>
+                    <li>比分比率：\(\frac{7}{6} = 1.167\)</li>
+                    <li>动态K因子：\(K = 32 \times (0.5 + 0.5 \times 1.167) = 34.7\)</li>
+                    <li>ELO变化：\(\Delta R_A = 34.7 \times (0.538 - 0.529) = +0.3\)</li>
+                </ol>
+                
+                <p class="text-success"><strong>结果：A玩家 +0.3分，B玩家 -0.3分</strong></p>
+                <p class="text-muted">小结：势均力敌且比分接近的比赛，ELO变化很小。</p>
+            </div>
+
+            <!-- 实例2 -->
+            <h5>实例2：大比分胜利 (9-0)</h5>
+            <div class="bg-light p-3 rounded mb-3">
+                <p><strong>初始状态：</strong></p>
+                <ul>
+                    <li>选手A ELO: 1550</li>
+                    <li>选手B ELO: 1530</li>
+                    <li>比分: 9-0 (A胜)</li>
+                </ul>
+                
+                <p><strong>计算过程：</strong></p>
+                <ol>
+                    <li>期望得分：\(E_A = 0.529\) (同上)</li>
+                    <li>实际得分：\(S_A = \frac{9}{9+0} = 1.0\)</li>
+                    <li>比分比率：\(\frac{9}{0.01} \approx 2.0\) (使用上限)</li>
+                    <li>动态K因子：\(K = 32 \times (0.5 + 0.5 \times 2.0) = 48\)</li>
+                    <li>ELO变化：\(\Delta R_A = 48 \times (1.0 - 0.529) = +22.6\)</li>
+                </ol>
+                
+                <p class="text-success"><strong>结果：A玩家 +22.6分，B玩家 -22.6分</strong></p>
+                <p class="text-muted">小结：大比分胜利获得显著更多的ELO奖励。</p>
+            </div>
+
+            <!-- 实例3 -->
+            <h5>实例3：爆冷门 (弱胜强)</h5>
+            <div class="bg-light p-3 rounded mb-3">
+                <p><strong>初始状态：</strong></p>
+                <ul>
+                    <li>选手A ELO: 1400 (弱)</li>
+                    <li>选手B ELO: 1600 (强)</li>
+                    <li>比分: 8-5 (A胜)</li>
+                </ul>
+                
+                <p><strong>计算过程：</strong></p>
+                <ol>
+                    <li>期望得分：\(E_A = \frac{1}{1 + 10^{(1600-1400)/400}} = 0.240\)</li>
+                    <li>实际得分：\(S_A = \frac{8}{8+5} = 0.615\)</li>
+                    <li>比分比率：\(\frac{8}{5} = 1.6\)</li>
+                    <li>动态K因子：\(K = 32 \times (0.5 + 0.5 \times 1.6) = 41.6\)</li>
+                    <li>ELO变化：\(\Delta R_A = 41.6 \times (0.615 - 0.240) = +15.6\)</li>
+                </ol>
+                
+                <p class="text-success"><strong>结果：A玩家 +15.6分，B玩家 -15.6分</strong></p>
+                <p class="text-muted">小结：战胜强敌获得大量ELO奖励，体现爆冷的价值。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 可视化图表 -->
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0"><i class="bi bi-graph-up"></i> 可视化图表</h4>
+        </div>
+        <div class="card-body">
+            <h5>ELO差距 vs 期望胜率</h5>
+            <canvas id="expectedScoreChart" height="80"></canvas>
+            
+            <h5 class="mt-4">K因子 vs 比分比率</h5>
+            <canvas id="kFactorChart" height="80"></canvas>
+        </div>
+    </div>
+
+    <!-- 算法优势 -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0"><i class="bi bi-trophy"></i> 算法优势</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>✅ 优点</h5>
+                    <ul>
+                        <li>赢家必定加分，避免9-0仍失分的问题</li>
+                        <li>动态K因子使大比分胜利获得更多奖励</li>
+                        <li>长期运行后准确反映真实水平</li>
+                        <li>自动平衡，总ELO保持恒定</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>⚠️ 注意事项</h5>
+                    <ul>
+                        <li>新玩家需要20-30场比赛才能稳定</li>
+                        <li>赛程安排会影响排名（强弱对手分布）</li>
+                        <li>联赛间ELO不直接可比（需标准化）</li>
+                        <li>运气成分仍存在（伤病、轮休等）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+// 期望得分图表
+const ctx1 = document.getElementById('expectedScoreChart').getContext('2d');
+const eloDiffs = [];
+const expectedScores = [];
+
+for (let diff = -400; diff <= 400; diff += 20) {
+    eloDiffs.push(diff);
+    const expected = 1 / (1 + Math.pow(10, diff / 400));
+    expectedScores.push(expected);
+}
+
+new Chart(ctx1, {
+    type: 'line',
+    data: {
+        labels: eloDiffs,
+        datasets: [{
+            label: '期望胜率',
+            data: expectedScores,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'ELO差距与期望胜率关系'
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'ELO差距 (自己 - 对手)'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: '期望胜率'
+                },
+                min: 0,
+                max: 1
+            }
+        }
+    }
+});
+
+// K因子图表
+const ctx2 = document.getElementById('kFactorChart').getContext('2d');
+const scoreRatios = [];
+const kFactors = [];
+
+for (let ratio = 1.0; ratio <= 2.0; ratio += 0.05) {
+    scoreRatios.push(ratio.toFixed(2));
+    const k = 32 * (0.5 + 0.5 * ratio);
+    kFactors.push(k);
+}
+
+new Chart(ctx2, {
+    type: 'line',
+    data: {
+        labels: scoreRatios,
+        datasets: [{
+            label: 'K因子',
+            data: kFactors,
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: '比分比率与K因子关系'
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: '比分比率 (max/min)'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'K因子'
+                },
+                min: 0,
+                max: 70
+            }
+        }
+    }
+});
+</script>
+
+<style>
+.formula-box {
+    font-size: 1.1em;
+    overflow-x: auto;
+}
+</style>
+{% endblock %}

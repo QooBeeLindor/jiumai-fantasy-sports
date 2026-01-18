@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铁人个人赛排行榜 - 九麦范特西</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .update-time {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            margin: 0 5px;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-active {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .leaderboard-table {
+            margin-top: 30px;
+        }
+        
+        .rank-cell {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .rank-1 { color: #FFD700; }
+        .rank-2 { color: #C0C0C0; }
+        .rank-3 { color: #CD7F32; }
+        
+        .player-name {
+            font-weight: 600;
+            color: #667eea;
+            cursor: pointer;
+        }
+        
+        .player-name:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+        
+        .score-cell {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .score-completed {
+            color: #28a745;
+        }
+        
+        .score-pending {
+            color: #6c757d;
+        }
+        
+        .total-score {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-container">
+            <!-- 页面标题 -->
+            <div class="header">
+                <h1>🏆 铁人个人赛排行榜</h1>
+                <p class="update-time">最后更新：{{ last_update }}</p>
+                
+                <!-- 项目状态 -->
+                <div class="mt-3">
+                    <span class="status-badge status-{{ 'completed' if sport_status['MLB']['status'] == 'completed' else 'active' }}">
+                        MLB {{ sport_status|sport_status_icon('MLB') }} {{ sport_status|sport_status_text('MLB') }}
+                    </span>
+                    <span class="status-badge status-{{ 'completed' if sport_status['NFL']['status'] == 'completed' else 'active' }}">
+                        NFL {{ sport_status|sport_status_icon('NFL') }} {{ sport_status|sport_status_text('NFL') }}
+                    </span>
+                    <span class="status-badge status-{{ 'completed' if sport_status['NHL']['status'] == 'completed' else 'active' }}">
+                        NHL {{ sport_status|sport_status_icon('NHL') }} {{ sport_status|sport_status_text('NHL') }}
+                    </span>
+                    <span class="status-badge status-{{ 'completed' if sport_status['NBA']['status'] == 'completed' else 'active' }}">
+                        NBA {{ sport_status|sport_status_icon('NBA') }} {{ sport_status|sport_status_text('NBA') }}
+                    </span>
+                </div>
+            </div>
+            
+            <!-- 排行榜表格 -->
+            <div class="leaderboard-table">
+                <table id="leaderboardTable" class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>排名</th>
+                            <th>玩家</th>
+                            <th>总分</th>
+                            <th>MLB</th>
+                            <th>NFL</th>
+                            <th>NHL</th>
+                            <th>NBA</th>
+                            <th>完成项目</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in leaderboard %}
+                        <tr>
+                            <td class="rank-cell rank-{{ player.rank if player.rank <= 3 else '' }}">
+                                {{ player.rank }}
+                            </td>
+                            <td>
+                                <a href="/ironman/player/{{ player.player_name }}" class="player-name">
+                                    {{ player.player_name }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="total-score">{{ "%.1f"|format(player.total_score) }}</span>
+                            </td>
+                            <td class="score-cell score-completed">
+                                {{ "%.1f"|format(player.mlb_points) if player.mlb_points > 0 else '-' }}
+                            </td>
+                            <td class="score-cell score-completed">
+                                {{ "%.1f"|format(player.nfl_points) if player.nfl_points > 0 else '-' }}
+                            </td>
+                            <td class="score-cell score-pending">
+                                {{ "%.1f"|format(player.nhl_points) if player.nhl_points > 0 else '-' }}
+                            </td>
+                            <td class="score-cell score-pending">
+                                {{ "%.1f"|format(player.nba_points) if player.nba_points > 0 else '-' }}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ player.completed_sports }}/4</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 图例说明 -->
+            <div class="legend">
+                <div class="legend-item">
+                    <strong>✓</strong> = 已结束（最终积分）
+                </div>
+                <div class="legend-item">
+                    <strong>⚡</strong> = 进行中（预期积分）
+                </div>
+                <div class="legend-item">
+                    <strong>-</strong> = 暂无数据
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- DataTables JS -->
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.1/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // 初始化DataTables
+            $('#leaderboardTable').DataTable({
+                "paging": false,
+                "searching": true,
+                "info": false,
+                "ordering": true,
+                "order": [[0, 'asc']],  // 默认按排名升序
+                "language": {
+                    "search": "搜索玩家:",
+                    "zeroRecords": "没有找到匹配的玩家",
+                    "emptyTable": "暂无数据"
+                }
+            });
+            
+            // 自动刷新（每10分钟）
+            setInterval(function() {
+                location.reload();
+            }, 600000);  // 600000ms = 10分钟
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,606 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+九麦NBA竞价选秀范特西联赛 - ELO排名系统
+Phase 1: 核心功能优化
+"""
+
+from flask import Flask, render_template, jsonify, request, abort
+import sqlite3
+import json
+from datetime import datetime
+from pathlib import Path
+from collections import defaultdict
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'jiumai-nba-fantasy-2026'
+
+# 数据库路径
+DB_PATH = 'nba_elo.db'
+
+# 联赛ID到名称的映射（北斗七星命名）
+LEAGUE_NAMES = {
+    162274: '天枢盟',  # 北斗一
+    162271: '天璇盟',  # 北斗二  
+    161296: '天玑盟',  # 北斗三
+    161323: '天权盟',  # 北斗四
+    161314: '玉衡盟',  # 北斗五
+}
+
+# 联赛顺序（按亮度排序）
+LEAGUE_ORDER = [162274, 162271, 161296, 161323, 161314]
+
+
+def get_db_connection():
+    """获取数据库连接"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def get_league_name(league_id):
+    """获取联赛名称"""
+    return LEAGUE_NAMES.get(int(league_id), f"League {league_id}")
+
+
+def format_elo(elo):
+    """格式化ELO分数"""
+    if elo is None:
+        return 'N/A'
+    return round(elo, 1)
+
+
+def format_percentage(value):
+    """格式化百分比"""
+    return f"{value:.1f}%"
+
+
+@app.route('/')
+def index():
+    """首页 - ELO总排行榜"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 获取所有玩家排名
+    cursor.execute('''
+        SELECT 
+            p.player_id,
+            p.yahoo_guid,
+            p.nickname,
+            p.current_elo,
+            p.initial_elo,
+            p.current_elo - p.initial_elo as elo_change,
+            p.games_played,
+            p.wins,
+            p.losses,
+            p.ties,
+            CASE 
+                WHEN p.games_played > 0 
+                THEN ROUND(CAST(p.wins AS FLOAT) / p.games_played * 100, 1)
+                ELSE 0 
+            END as win_rate,
+            p.highest_elo,
+            p.lowest_elo
+        FROM players p
+        WHERE p.games_played > 0
+        ORDER BY p.current_elo DESC
+    ''')
+    
+    players = []
+    for i, row in enumerate(cursor.fetchall(), 1):
+        players.append({
+            'rank': i,
+            'player_id': row['player_id'],
+            'yahoo_guid': row['yahoo_guid'],
+            'nickname': row['nickname'],
+            'elo': format_elo(row['current_elo']),
+            'elo_change': format_elo(row['elo_change']),
+            'games': row['games_played'],
+            'wins': row['wins'],
+            'losses': row['losses'],
+            'ties': row['ties'],
+            'win_rate': format_percentage(row['win_rate']),
+            'record': f"{row['wins']}-{row['losses']}-{row['ties']}",
+            'highest': format_elo(row['highest_elo']),
+            'lowest': format_elo(row['lowest_elo'])
+        })
+    
+    # 获取统计数据
+    cursor.execute('SELECT COUNT(*) as total FROM players WHERE games_played > 0')
+    total_players = cursor.fetchone()['total']
+    
+    cursor.execute('SELECT COUNT(*) as total FROM matches')
+    total_matches = cursor.fetchone()['total']
+    
+    # 获取当前周数
+    cursor.execute('SELECT MAX(week) as current_week FROM matches')
+    current_week = cursor.fetchone()['current_week'] or 0
+    
+    conn.close()
+    
+    stats = {
+        'total_players': total_players,
+        'total_matches': total_matches // 2,
+        'active_leagues': len(LEAGUE_NAMES),
+        'current_week': current_week,
+        'last_update': datetime.now().strftime('%Y-%m-%d %H:%M')
+    }
+    
+    return render_template('index.html', players=players, stats=stats)
+
+
+@app.route('/player/<player_id>')
+def player_detail(player_id):
+    """玩家详情页"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 获取玩家基本信息
+    cursor.execute('''
+        SELECT 
+            p.*,
+            CASE 
+                WHEN p.games_played > 0 
+                THEN ROUND(CAST(p.wins AS FLOAT) / p.games_played * 100, 1)
+                ELSE 0 
+            END as win_rate
+        FROM players p
+        WHERE p.player_id = ?
+    ''', (player_id,))
+    
+    player_row = cursor.fetchone()
+    if not player_row:
+        abort(404)
+    
+    player = {
+        'id': player_row['player_id'],
+        'nickname': player_row['nickname'],
+        'yahoo_guid': player_row['yahoo_guid'],
+        'current_elo': format_elo(player_row['current_elo']),
+        'initial_elo': format_elo(player_row['initial_elo']),
+        'elo_change': format_elo(player_row['current_elo'] - player_row['initial_elo']),
+        'games': player_row['games_played'],
+        'wins': player_row['wins'],
+        'losses': player_row['losses'],
+        'ties': player_row['ties'],
+        'win_rate': format_percentage(player_row['win_rate']),
+        'highest_elo': format_elo(player_row['highest_elo']),
+        'lowest_elo': format_elo(player_row['lowest_elo']),
+        'record': f"{player_row['wins']}-{player_row['losses']}-{player_row['ties']}"
+    }
+    
+    # 获取玩家参与的联赛
+    cursor.execute('''
+        SELECT DISTINCT league_id, league_name
+        FROM matches
+        WHERE team1_manager_id = ? OR team2_manager_id = ?
+        ORDER BY league_id
+    ''', (player_id, player_id))
+    
+    player_leagues = []
+    for row in cursor.fetchall():
+        league_id = row['league_id']
+        player_leagues.append({
+            'id': league_id,
+            'name': get_league_name(league_id),
+            'original_name': row['league_name']
+        })
+    
+    # 获取ELO历史数据（用于图表）
+    cursor.execute('''
+        SELECT 
+            week,
+            AVG(CASE 
+                WHEN team1_manager_id = ? THEN team1_elo_after
+                WHEN team2_manager_id = ? THEN team2_elo_after 
+            END) as elo
+        FROM matches
+        WHERE team1_manager_id = ? OR team2_manager_id = ?
+        GROUP BY week
+        ORDER BY week
+    ''', (player_id, player_id, player_id, player_id))
+    
+    elo_history = [{'week': row['week'], 'elo': format_elo(row['elo'])} 
+                   for row in cursor.fetchall()]
+    
+    # 获取最近20场比赛
+    cursor.execute('''
+        SELECT 
+            m.*,
+            p1.nickname as team1_name,
+            p2.nickname as team2_name
+        FROM matches m
+        LEFT JOIN players p1 ON m.team1_manager_id = p1.player_id
+        LEFT JOIN players p2 ON m.team2_manager_id = p2.player_id
+        WHERE m.team1_manager_id = ? OR m.team2_manager_id = ?
+        ORDER BY m.week DESC, m.match_date DESC
+        LIMIT 20
+    ''', (player_id, player_id))
+    
+    recent_matches = []
+    for row in cursor.fetchall():
+        is_team1 = row['team1_manager_id'] == int(player_id)
+        my_score = row['team1_score'] if is_team1 else row['team2_score']
+        opp_score = row['team2_score'] if is_team1 else row['team1_score']
+        my_elo_change = row['team1_elo_change'] if is_team1 else row['team2_elo_change']
+        opponent = row['team2_name'] if is_team1 else row['team1_name']
+        
+        # 判断结果
+        if my_score > opp_score:
+            result = 'W'
+            result_class = 'success'
+        elif my_score < opp_score:
+            result = 'L'
+            result_class = 'danger'
+        else:
+            result = 'T'
+            result_class = 'warning'
+        
+        recent_matches.append({
+            'week': row['week'],
+            'league': get_league_name(row['league_id']),
+            'opponent': opponent,
+            'score': f"{my_score}-{opp_score}",
+            'result': result,
+            'result_class': result_class,
+            'elo_change': f"{my_elo_change:+.1f}",
+            'elo_change_class': 'text-success' if my_elo_change > 0 else 'text-danger'
+        })
+    
+    conn.close()
+    
+    return render_template('player.html', 
+                         player=player,
+                         leagues=player_leagues,
+                         elo_history=json.dumps(elo_history),
+                         recent_matches=recent_matches)
+
+
+@app.route('/matches')
+def matches_list():
+    """比赛记录页面"""
+    # 获取筛选参数
+    week = request.args.get('week', type=int)
+    league_id = request.args.get('league', type=int)
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 获取所有周数
+    cursor.execute('SELECT DISTINCT week FROM matches ORDER BY week DESC')
+    weeks = [row['week'] for row in cursor.fetchall()]
+    
+    # 获取所有联赛
+    leagues = [{'id': lid, 'name': get_league_name(lid)} 
+               for lid in LEAGUE_ORDER]
+    
+    # 构建查询
+    query = '''
+        SELECT 
+            m.*,
+            p1.nickname as team1_name,
+            p2.nickname as team2_name
+        FROM matches m
+        LEFT JOIN players p1 ON m.team1_manager_id = p1.player_id
+        LEFT JOIN players p2 ON m.team2_manager_id = p2.player_id
+        WHERE 1=1
+    '''
+    params = []
+    
+    if week:
+        query += ' AND m.week = ?'
+        params.append(week)
+    
+    if league_id:
+        query += ' AND m.league_id = ?'
+        params.append(league_id)
+    
+    query += ' ORDER BY m.week DESC, m.match_date DESC LIMIT 100'
+    
+    cursor.execute(query, params)
+    
+    matches = []
+    for row in cursor.fetchall():
+        # 判断结果
+        if row['team1_score'] > row['team2_score']:
+            team1_class = 'table-success'
+            team2_class = ''
+        elif row['team1_score'] < row['team2_score']:
+            team1_class = ''
+            team2_class = 'table-success'
+        else:
+            team1_class = 'table-warning'
+            team2_class = 'table-warning'
+        
+        matches.append({
+            'week': row['week'],
+            'league': get_league_name(row['league_id']),
+            'team1': row['team1_name'],
+            'team2': row['team2_name'],
+            'score1': row['team1_score'],
+            'score2': row['team2_score'],
+            'elo_change1': f"{row['team1_elo_change']:+.1f}",
+            'elo_change2': f"{row['team2_elo_change']:+.1f}",
+            'team1_class': team1_class,
+            'team2_class': team2_class,
+            'date': row['match_date']
+        })
+    
+    conn.close()
+    
+    return render_template('matches.html',
+                          matches=matches,
+                          weeks=weeks,
+                          leagues=leagues,
+                          selected_week=week,
+                          selected_league=league_id)
+
+
+@app.route('/leagues')
+def leagues_comparison():
+    """联赛对比页面 - 五盟对比"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    league_stats = []
+    
+    for league_id in LEAGUE_ORDER:
+        # 获取该联赛的基本信息
+        cursor.execute('''
+            SELECT 
+                league_name,
+                num_teams,
+                current_week
+            FROM leagues
+            WHERE league_id = ?
+        ''', (league_id,))
+        
+        league_info = cursor.fetchone()
+        
+        # 获取该联赛的统计数据
+        cursor.execute('''
+            SELECT 
+                COUNT(DISTINCT match_id) / 2 as total_matches,
+                AVG(team1_score + team2_score) / 2 as avg_score
+            FROM matches
+            WHERE league_id = ?
+        ''', (league_id,))
+        
+        match_stats = cursor.fetchone()
+        
+        # 获取该联赛玩家的平均ELO
+        cursor.execute('''
+            SELECT AVG(current_elo) as avg_elo
+            FROM players
+            WHERE player_id IN (
+                SELECT DISTINCT team1_manager_id 
+                FROM matches 
+                WHERE league_id = ?
+            )
+        ''', (league_id,))
+        
+        elo_stats = cursor.fetchone()
+        
+        # 获取该联赛的玩家列表和排名
+        cursor.execute('''
+            SELECT 
+                p.player_id,
+                p.nickname,
+                p.current_elo,
+                p.games_played,
+                p.wins,
+                p.losses,
+                p.ties
+            FROM players p
+            WHERE p.player_id IN (
+                SELECT DISTINCT team1_manager_id 
+                FROM matches 
+                WHERE league_id = ?
+            )
+            ORDER BY p.current_elo DESC
+        ''', (league_id,))
+        
+        players = []
+        for i, row in enumerate(cursor.fetchall(), 1):
+            players.append({
+                'rank': i,
+                'player_id': row['player_id'],
+                'nickname': row['nickname'],
+                'elo': format_elo(row['current_elo']),
+                'record': f"{row['wins']}-{row['losses']}-{row['ties']}"
+            })
+        
+        if league_info:
+            league_stats.append({
+                'id': league_id,
+                'name': get_league_name(league_id),
+                'teams': league_info['num_teams'],
+                'week': league_info['current_week'],
+                'matches': int(match_stats['total_matches']) if match_stats['total_matches'] else 0,
+                'avg_elo': format_elo(elo_stats['avg_elo']) if elo_stats['avg_elo'] else 'N/A',
+                'avg_score': format_elo(match_stats['avg_score']) if match_stats['avg_score'] else 'N/A',
+                'players': players
+            })
+    
+    conn.close()
+    
+    return render_template('leagues.html', leagues=league_stats)
+
+
+@app.route('/weekly_elo')
+def weekly_elo_changes():
+    """每周ELO变化表格页面"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 获取所有周数
+    cursor.execute('SELECT DISTINCT week FROM matches ORDER BY week')
+    weeks = [row['week'] for row in cursor.fetchall()]
+    
+    # 获取所有活跃玩家
+    cursor.execute('''
+        SELECT player_id, nickname
+        FROM players
+        WHERE games_played > 0
+        ORDER BY current_elo DESC
+    ''')
+    players = {row['player_id']: row['nickname'] for row in cursor.fetchall()}
+    
+    # 获取每个玩家每周的ELO
+    weekly_data = defaultdict(lambda: defaultdict(lambda: None))
+    
+    cursor.execute('''
+        SELECT 
+            CASE 
+                WHEN team1_manager_id IN (?) THEN team1_manager_id
+                WHEN team2_manager_id IN (?) THEN team2_manager_id
+            END as player_id,
+            week,
+            AVG(CASE 
+                WHEN team1_manager_id IN (?) THEN team1_elo_after
+                WHEN team2_manager_id IN (?) THEN team2_elo_after
+            END) as elo
+        FROM matches
+        WHERE team1_manager_id IN (?) OR team2_manager_id IN (?)
+        GROUP BY player_id, week
+        ORDER BY player_id, week
+    ''', (tuple(players.keys()),) * 6)
+    
+    for row in cursor.fetchall():
+        player_id = row['player_id']
+        week = row['week']
+        elo = row['elo']
+        weekly_data[player_id][week] = format_elo(elo)
+    
+    # 构建表格数据
+    table_data = []
+    for player_id, nickname in players.items():
+        row_data = {'player_id': player_id, 'nickname': nickname}
+        for week in weeks:
+            row_data[f'week_{week}'] = weekly_data[player_id].get(week, '-')
+        table_data.append(row_data)
+    
+    conn.close()
+    
+    return render_template('weekly_elo.html', 
+                         weeks=weeks,
+                         players=table_data)
+
+
+# ============ API接口 ============
+
+@app.route('/api/rankings')
+def api_rankings():
+    """API: 获取排名数据（JSON格式）"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT 
+            p.player_id,
+            p.nickname,
+            p.current_elo,
+            p.games_played,
+            p.wins,
+            p.losses,
+            p.ties
+        FROM players p
+        WHERE p.games_played > 0
+        ORDER BY p.current_elo DESC
+    ''')
+    
+    rankings = []
+    for i, row in enumerate(cursor.fetchall(), 1):
+        rankings.append({
+            'rank': i,
+            'player_id': row['player_id'],
+            'nickname': row['nickname'],
+            'elo': format_elo(row['current_elo']),
+            'games': row['games_played'],
+            'record': f"{row['wins']}-{row['losses']}-{row['ties']}"
+        })
+    
+    conn.close()
+    
+    return jsonify(rankings)
+
+
+@app.route('/api/player/<player_id>/history')
+def api_player_history(player_id):
+    """API: 获取玩家ELO历史"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT 
+            week,
+            AVG(CASE 
+                WHEN team1_manager_id = ? THEN team1_elo_after
+                WHEN team2_manager_id = ? THEN team2_elo_after 
+            END) as elo
+        FROM matches
+        WHERE team1_manager_id = ? OR team2_manager_id = ?
+        GROUP BY week
+        ORDER BY week
+    ''', (player_id, player_id, player_id, player_id))
+    
+    history = [{'week': row['week'], 'elo': format_elo(row['elo'])} 
+               for row in cursor.fetchall()]
+    
+    conn.close()
+    
+    return jsonify(history)
+
+
+@app.route('/api/leagues')
+def api_leagues():
+    """API: 获取所有联赛信息"""
+    leagues_info = [
+        {'id': lid, 'name': get_league_name(lid)}
+        for lid in LEAGUE_ORDER
+    ]
+    return jsonify(leagues_info)
+
+
+# ============ 错误处理 ============
+
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('404.html'), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    return render_template('500.html'), 500
+
+
+# ============ 启动应用 ============
+
+if __name__ == '__main__':
+    # 检查数据库是否存在
+    if not Path(DB_PATH).exists():
+        print(f"⚠️  警告: 数据库文件 {DB_PATH} 不存在")
+        print("请确保已复制 nba_elo.db 到 web_app 目录")
+    else:
+        print("=" * 70)
+        print("🏀 九麦NBA竞价选秀范特西联赛 - ELO排名系统")
+        print("=" * 70)
+        print()
+        print(f"✅ 数据库连接成功: {DB_PATH}")
+        print()
+        print("🌐 访问地址:")
+        print("   本地: http://127.0.0.1:5000")
+        print("   局域网: http://0.0.0.0:5000")
+        print()
+        print("📊 功能页面:")
+        print("   排行榜: http://127.0.0.1:5000/")
+        print("   比赛记录: http://127.0.0.1:5000/matches")
+        print("   联赛对比: http://127.0.0.1:5000/leagues")
+        print("   每周变化: http://127.0.0.1:5000/weekly_elo")
+        print()
+        print("💡 提示: 按 Ctrl+C 停止服务器")
+        print("=" * 70)
+        print()
+    
+    # 生产模式（Windows兼容）
+    app.run(host='0.0.0.0', port=5000, debug=False)

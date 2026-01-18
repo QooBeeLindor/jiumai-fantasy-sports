@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ team['team_name'] }} - 铁人团队赛</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .back-button {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: #764ba2;
+        }
+
+        .team-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .team-name {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .team-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .members-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .member-tag {
+            background: #e6fffa;
+            color: #234e52;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .sport-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .sport-card.completed {
+            border-left-color: #48bb78;
+        }
+
+        .sport-card.active {
+            border-left-color: #ed8936;
+        }
+
+        .sport-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .sport-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .sport-status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .sport-status.completed {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .sport-status.active {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .sport-detail {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .detail-label {
+            color: #718096;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .total-score {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .total-label {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .total-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .no-data {
+            color: #cbd5e0;
+            font-style: italic;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .team-name {
+                font-size: 24px;
+            }
+
+            .team-stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .scores-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/irongroup/leaderboard" class="back-button">← 返回排行榜</a>
+
+        <div class="team-header">
+            <div class="team-name">{{ team['team_name'] }}</div>
+            <div class="team-stats">
+                <div class="stat-item">
+                    <div class="stat-label">总排名</div>
+                    <div class="stat-value">#{{ team['rank'] }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">总分</div>
+                    <div class="stat-value">{{ "%.1f"|format(team['total_score']) }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">已完成</div>
+                    <div class="stat-value">{{ team['completed_sports'] }}/5</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🏀 队伍成员</h2>
+            <div class="members-list">
+                {% for member in members %}
+                <span class="member-tag">{{ member }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📊 各项目积分</h2>
+            <div class="scores-grid">
+                {% for score in scores %}
+                <div class="sport-card {{ 'completed' if score['is_final'] else 'active' }}">
+                    <div class="sport-header">
+                        <div class="sport-name">{{ score['sport'] }}</div>
+                        <span class="sport-status {{ 'completed' if score['status'] == 'completed' else 'active' }}">
+                            {{ '已结束' if score['status'] == 'completed' else '进行中' }}
+                        </span>
+                    </div>
+
+                    {% if score['total_score'] > 0 or (score.get('expected_score') and score['expected_score'] > 0) %}
+                        {% if score['is_final'] %}
+                            <div class="sport-detail">
+                                <span class="detail-label">季后赛排名:</span>
+                                <span class="detail-value">第{{ score['playoff_rank'] }}名</span>
+                            </div>
+                            <div class="sport-detail">
+                                <span class="detail-label">季后赛积分:</span>
+                                <span class="detail-value">{{ "%.1f"|format(score['playoff_score']) }}分</span>
+                            </div>
+                            {% if score['regular_bonus'] > 0 %}
+                            <div class="sport-detail">
+                                <span class="detail-label">常规赛加分:</span>
+                                <span class="detail-value">{{ "%.1f"|format(score['regular_bonus']) }}分</span>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            {% if score['power_rank'] %}
+                            <div class="sport-detail">
+                                <span class="detail-label">实力榜排名:</span>
+                                <span class="detail-value">第{{ score['power_rank'] }}名</span>
+                            </div>
+                            <div class="sport-detail">
+                                <span class="detail-label">预期积分:</span>
+                                <span class="detail-value">{{ "%.1f"|format(score.get('expected_score', 0)) }}分</span>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+
+                        <div class="total-score">
+                            <span class="total-label">总计:</span>
+                            <span class="total-value">
+                                {{ "%.1f"|format(score['total_score'] if score['is_final'] else score.get('expected_score', 0)) }}
+                            </span>
+                        </div>
+                    {% else %}
+                        <div class="no-data">暂无数据</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
