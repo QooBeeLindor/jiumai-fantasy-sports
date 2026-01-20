@@ -46,7 +46,7 @@
 - **季后赛积分** (13-3分): 根据季后赛排名，全部12队
 - **常规赛bonus** (3-0.5分): 根据常规赛排名，只有前4名
 
-详见：[irongroup/README.md](./irongroup/README.md)
+详见：[irongroup/README_IRONGROUP.md](./irongroup/README_IRONGROUP.md)
 
 ## 🔧 数据更新工作流
 
