@@ -79,7 +79,7 @@ def leaderboard():
     
     teams_raw = cursor.fetchall()
     
-    # 对于未完成的项目，用power_rank计算预期得分
+    # 对于未完成的项目，计算当前分数（bonus + playoff或预期playoff）
     teams = []
     for team_row in teams_raw:
         team_id = team_row[0]
@@ -91,32 +91,53 @@ def leaderboard():
         epl_score = team_row[6]
         completed = team_row[7]
         
-        # 查询NHL的power_rank（如果存在且未完成）
+        # 查询NHL的当前分数（如果未完成）
         cursor.execute('''
-            SELECT power_rank FROM team_scores 
-            WHERE team_id = ? AND sport = 'NHL' AND is_final = 0 AND power_rank IS NOT NULL
+            SELECT regular_bonus, playoff_score, power_rank, is_final
+            FROM team_scores 
+            WHERE team_id = ? AND sport = 'NHL'
         ''', (team_id,))
-        nhl_rank = cursor.fetchone()
-        if nhl_rank:
-            nhl_score = rank_to_playoff_score(nhl_rank[0])
+        nhl_data = cursor.fetchone()
+        if nhl_data and not nhl_data['is_final']:
+            nhl_score = 0
+            if nhl_data['regular_bonus']:
+                nhl_score += nhl_data['regular_bonus']
+            if nhl_data['playoff_score']:
+                nhl_score += nhl_data['playoff_score']
+            elif nhl_data['power_rank']:
+                nhl_score += rank_to_playoff_score(nhl_data['power_rank'])
         
-        # 查询NBA的power_rank（如果存在且未完成）
+        # 查询NBA的当前分数（如果未完成）
         cursor.execute('''
-            SELECT power_rank FROM team_scores 
-            WHERE team_id = ? AND sport = 'NBA' AND is_final = 0 AND power_rank IS NOT NULL
+            SELECT regular_bonus, playoff_score, power_rank, is_final
+            FROM team_scores 
+            WHERE team_id = ? AND sport = 'NBA'
         ''', (team_id,))
-        nba_rank = cursor.fetchone()
-        if nba_rank:
-            nba_score = rank_to_playoff_score(nba_rank[0])
+        nba_data = cursor.fetchone()
+        if nba_data and not nba_data['is_final']:
+            nba_score = 0
+            if nba_data['regular_bonus']:
+                nba_score += nba_data['regular_bonus']
+            if nba_data['playoff_score']:
+                nba_score += nba_data['playoff_score']
+            elif nba_data['power_rank']:
+                nba_score += rank_to_playoff_score(nba_data['power_rank'])
         
-        # 查询EPL的power_rank（如果存在且未完成）
+        # 查询EPL的当前分数（如果未完成）
         cursor.execute('''
-            SELECT power_rank FROM team_scores 
-            WHERE team_id = ? AND sport = 'EPL' AND is_final = 0 AND power_rank IS NOT NULL
+            SELECT regular_bonus, playoff_score, power_rank, is_final
+            FROM team_scores 
+            WHERE team_id = ? AND sport = 'EPL'
         ''', (team_id,))
-        epl_rank = cursor.fetchone()
-        if epl_rank:
-            epl_score = rank_to_playoff_score(epl_rank[0])
+        epl_data = cursor.fetchone()
+        if epl_data and not epl_data['is_final']:
+            epl_score = 0
+            if epl_data['regular_bonus']:
+                epl_score += epl_data['regular_bonus']
+            if epl_data['playoff_score']:
+                epl_score += epl_data['playoff_score']
+            elif epl_data['power_rank']:
+                epl_score += rank_to_playoff_score(epl_data['power_rank'])
         
         # 计算总分（包含所有项目的分数）
         total_score = mlb_score + nfl_score + nhl_score + nba_score + epl_score
@@ -244,14 +265,27 @@ def team_detail(team_name):
             scores_dict[sport] = score['total_score']
             total_score += score['total_score']
             completed_sports += 1
-        elif score['power_rank']:
-            # 未完成但有排名，计算预期得分
-            expected_score = rank_to_playoff_score(score['power_rank'])
-            scores_dict[sport] = expected_score
-            score_dict['expected_score'] = expected_score
-            total_score += expected_score
         else:
-            scores_dict[sport] = 0
+            # 未完成项目，计算当前分数
+            current_score = 0
+            
+            # 如果有常规赛bonus，加上bonus
+            if score['regular_bonus']:
+                current_score += score['regular_bonus']
+            
+            # 如果有季后赛积分，加上季后赛积分
+            if score['playoff_score']:
+                current_score += score['playoff_score']
+            
+            # 如果都没有，但有power_rank，计算预期季后赛积分
+            if not score['regular_bonus'] and not score['playoff_score'] and score['power_rank']:
+                expected_playoff = rank_to_playoff_score(score['power_rank'])
+                score_dict['expected_playoff'] = expected_playoff
+                current_score += expected_playoff
+            
+            scores_dict[sport] = current_score
+            score_dict['current_score'] = current_score
+            total_score += current_score
         
         scores_list.append(score_dict)
     
@@ -299,32 +333,56 @@ def team_detail(team_name):
         t_id = t['team_id']
         t_total = t['mlb_score'] + t['nfl_score']
         
-        # 添加NHL预期得分
+        # 添加NHL当前得分
         cursor.execute('''
-            SELECT power_rank FROM team_scores 
-            WHERE team_id = ? AND sport = 'NHL' AND is_final = 0 AND power_rank IS NOT NULL
+            SELECT regular_bonus, playoff_score, power_rank, is_final
+            FROM team_scores 
+            WHERE team_id = ? AND sport = 'NHL'
         ''', (t_id,))
-        nhl_rank = cursor.fetchone()
-        if nhl_rank:
-            t_total += rank_to_playoff_score(nhl_rank[0])
+        nhl_data = cursor.fetchone()
+        if nhl_data and not nhl_data['is_final']:
+            nhl_score = 0
+            if nhl_data['regular_bonus']:
+                nhl_score += nhl_data['regular_bonus']
+            if nhl_data['playoff_score']:
+                nhl_score += nhl_data['playoff_score']
+            elif nhl_data['power_rank']:
+                nhl_score += rank_to_playoff_score(nhl_data['power_rank'])
+            t_total += nhl_score
         
-        # 添加NBA预期得分
+        # 添加NBA当前得分
         cursor.execute('''
-            SELECT power_rank FROM team_scores 
-            WHERE team_id = ? AND sport = 'NBA' AND is_final = 0 AND power_rank IS NOT NULL
+            SELECT regular_bonus, playoff_score, power_rank, is_final
+            FROM team_scores 
+            WHERE team_id = ? AND sport = 'NBA'
         ''', (t_id,))
-        nba_rank = cursor.fetchone()
-        if nba_rank:
-            t_total += rank_to_playoff_score(nba_rank[0])
+        nba_data = cursor.fetchone()
+        if nba_data and not nba_data['is_final']:
+            nba_score = 0
+            if nba_data['regular_bonus']:
+                nba_score += nba_data['regular_bonus']
+            if nba_data['playoff_score']:
+                nba_score += nba_data['playoff_score']
+            elif nba_data['power_rank']:
+                nba_score += rank_to_playoff_score(nba_data['power_rank'])
+            t_total += nba_score
         
-        # 添加EPL预期得分
+        # 添加EPL当前得分
         cursor.execute('''
-            SELECT power_rank FROM team_scores 
-            WHERE team_id = ? AND sport = 'EPL' AND is_final = 0 AND power_rank IS NOT NULL
+            SELECT regular_bonus, playoff_score, power_rank, is_final
+            FROM team_scores 
+            WHERE team_id = ? AND sport = 'EPL'
         ''', (t_id,))
-        epl_rank = cursor.fetchone()
-        if epl_rank:
-            t_total += rank_to_playoff_score(epl_rank[0])
+        epl_data = cursor.fetchone()
+        if epl_data and not epl_data['is_final']:
+            epl_score = 0
+            if epl_data['regular_bonus']:
+                epl_score += epl_data['regular_bonus']
+            if epl_data['playoff_score']:
+                epl_score += epl_data['playoff_score']
+            elif epl_data['power_rank']:
+                epl_score += rank_to_playoff_score(epl_data['power_rank'])
+            t_total += epl_score
         
         team_scores.append((t_id, t_total))
     
