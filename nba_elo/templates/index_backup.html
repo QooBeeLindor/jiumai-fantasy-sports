@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}排行榜 - 九麦NBA竞价选秀范特西联赛{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和更新时间 -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2 class="mb-2">
+                <i class="bi bi-trophy-fill text-warning"></i> 
+                ELO总排行榜
+            </h2>
+            <p class="text-muted mb-0">
+                <i class="bi bi-clock-history"></i> 
+                数据更新时间: <strong class="text-primary">{{ stats.last_update }}</strong>
+            </p>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h3>{{ stats.total_players }}</h3>
+                <p><i class="bi bi-people-fill"></i> 活跃玩家</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h3>{{ stats.total_matches }}</h3>
+                <p><i class="bi bi-calendar-event"></i> 比赛场数</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h3>{{ stats.active_leagues }}</h3>
+                <p><i class="bi bi-trophy"></i> 活跃联赛</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h3>第{{ stats.current_week }}周</h3>
+                <p><i class="bi bi-calendar-week"></i> 当前进度</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 排行榜 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-ol"></i> ELO总排行榜</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">排名</th>
+                                    <th>玩家</th>
+                                    <th class="text-center">ELO</th>
+                                    <th class="text-center">变化</th>
+                                    <th class="text-center">战绩</th>
+                                    <th class="text-center">胜率</th>
+                                    <th class="text-center">峰值/低谷</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player in players %}
+                                <tr onclick="window.location='/player/{{ player.player_id }}'" style="cursor: pointer;">
+                                    <td class="text-center align-middle">
+                                        <span class="badge {% if player.rank == 1 %}bg-warning text-dark{% elif player.rank <= 3 %}bg-success{% elif player.rank <= 10 %}bg-info{% else %}bg-secondary{% endif %}">
+                                            #{{ player.rank }}
+                                        </span>
+                                    </td>
+                                    <td class="align-middle"><strong>{{ player.nickname }}</strong></td>
+                                    <td class="text-center align-middle">
+                                        <span class="badge bg-primary" style="font-size: 1rem;">{{ player.elo }}</span>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        <span class="{% if player.elo_change|float > 0 %}text-success{% elif player.elo_change|float < 0 %}text-danger{% else %}text-secondary{% endif %}" style="font-weight: 600;">
+                                            {{ '{:+.1f}'.format(player.elo_change|float) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        <small>{{ player.record }}</small>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" role="progressbar" 
+                                                 style="width: {{ player.win_rate|replace('%','')|float }}%">
+                                                {{ player.win_rate }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        <small class="text-success">↑{{ player.highest }}</small> / 
+                                        <small class="text-danger">↓{{ player.lowest }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+}
+
+.stat-card h3 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

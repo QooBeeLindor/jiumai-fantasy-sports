@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}每周ELO变化 - 九麦NBA竞价选秀范特西联赛{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-3">
+                <i class="bi bi-bar-chart-line-fill"></i> 每周ELO变化表格
+            </h2>
+            <p class="text-muted">
+                追踪每位玩家每周的ELO积分变化，横向对比实力增长趋势
+            </p>
+        </div>
+    </div>
+
+    <!-- ELO变化表格 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table"></i> ELO积分周度变化表
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="weeklyTable">
+                            <thead>
+                                <tr>
+                                    <th class="text-center" style="position: sticky; left: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); z-index: 10;">
+                                        #
+                                    </th>
+                                    <th style="position: sticky; left: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); z-index: 10;">
+                                        玩家
+                                    </th>
+                                    {% for week in weeks %}
+                                    <th class="text-center">第{{ week }}周</th>
+                                    {% endfor %}
+                                    <th class="text-center" style="background: rgba(255, 193, 7, 0.2);">
+                                        变化
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player in players %}
+                                <tr onclick="window.location='/player/{{ player.player_id }}'">
+                                    <td class="text-center align-middle" style="position: sticky; left: 0; background: white; z-index: 5;">
+                                        <strong>{{ loop.index }}</strong>
+                                    </td>
+                                    <td class="align-middle" style="position: sticky; left: 40px; background: white; z-index: 5;">
+                                        <strong>{{ player.nickname }}</strong>
+                                    </td>
+                                    {% set first_week = None %}
+                                    {% set last_week = None %}
+                                    {% for week in weeks %}
+                                        {% set elo_value = player['week_' ~ week] %}
+                                        {% if elo_value != '-' %}
+                                            {% if first_week is none %}
+                                                {% set first_week = elo_value %}
+                                            {% endif %}
+                                            {% set last_week = elo_value %}
+                                        {% endif %}
+                                        <td class="text-center align-middle {% if elo_value != '-' %}table-active{% endif %}">
+                                            {% if elo_value != '-' %}
+                                                <span class="badge bg-secondary">{{ elo_value }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                    <td class="text-center align-middle" style="background: rgba(255, 193, 7, 0.1);">
+                                        {% if first_week and last_week and first_week != '-' and last_week != '-' %}
+                                            {% set change = last_week|float - first_week|float %}
+                                            <span class="badge {% if change > 0 %}bg-success{% elif change < 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                {{ '{:+.1f}'.format(change) }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 说明 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6 class="alert-heading">
+                    <i class="bi bi-info-circle-fill"></i> 使用说明
+                </h6>
+                <ul class="mb-0">
+                    <li><strong>横向查看</strong>：可以左右滚动查看所有周次的数据</li>
+                    <li><strong>变化趋势</strong>：最右侧显示从第一周到最后一周的总变化</li>
+                    <li><strong>点击玩家</strong>：点击任意行可查看该玩家的详细信息</li>
+                    <li><strong>颜色含义</strong>：
+                        <span class="badge bg-success">绿色</span> = 上升，
+                        <span class="badge bg-danger">红色</span> = 下降，
+                        <span class="badge bg-secondary">灰色</span> = 无变化
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 表格横向滚动 */
+    .table-responsive {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    /* 固定列样式 */
+    th, td {
+        white-space: nowrap;
+    }
+    
+    /* 鼠标悬停效果 */
+    tbody tr {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    tbody tr:hover {
+        background-color: #f8f9fa !important;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* 表格单元格内边距 */
+    .table td, .table th {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+    
+    /* Badge样式增强 */
+    .badge {
+        font-size: 0.875rem;
+        padding: 0.4em 0.6em;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
