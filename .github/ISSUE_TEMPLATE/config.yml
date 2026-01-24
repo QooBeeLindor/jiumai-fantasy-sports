@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📚 查看文档
+    url: https://github.com/QooBeeLindor/jiumai-fantasy-sports/blob/main/nba_elo/README.md
+    about: 查看NBA ELO系统完整文档
+  - name: 🚀 快速参考
+    url: https://github.com/QooBeeLindor/jiumai-fantasy-sports/blob/main/docs/QUICK_REFERENCE.md
+    about: 运维和使用快速参考手册
+  - name: 🏀 访问系统
+    url: http://129.204.8.241/NBA/waiverleague/
+    about: 访问NBA ELO系统生产环境
