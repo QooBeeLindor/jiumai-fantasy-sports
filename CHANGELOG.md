@@ -1,103 +1,160 @@
 # Changelog
 
-All notable changes to NBA ELO System will be documented in this file.
+All notable changes to the Jiumai Fantasy Sports project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.0] - 2026-01-21
+---
 
-### Added
-- **PrefixMiddleware**: 新增中间件支持Flask应用部署在子路径下（如 `/NBA/waiverleague/`）
-  - 自动读取Nginx传递的 `X-Script-Name` header
-  - 动态设置Flask的 `SCRIPT_NAME` 环境变量
-  - 自动调整 `PATH_INFO` 以适配子路径部署
-
-### Changed
-- **URL生成方式标准化**：所有模板统一使用 `url_for()` 生成URL，替代硬编码路径
-- **templates/index.html**:
-  - 玩家详情链接从 `/player/...` 改为 `url_for('player_detail', ...)`
-  - 阵容链接从 `/roster/...` 改为 `url_for('roster', ...)`
-- **templates/player.html**:
-  - 阵容链接从 `/roster/...` 改为 `url_for('roster', ...)`
-
-### Fixed
-- 修复应用部署在子路径时，导航栏链接指向错误路径的问题
-- 修复玩家详情页（/player/...）无法访问的问题
-- 修复球队阵容页（/roster/...）无法访问的问题
-- 修复首页玩家列表点击跳转到错误路径的问题
-
-### Technical Details
-- **部署路径**：应用现在正确支持部署在 `/NBA/waiverleague/` 子路径
-- **兼容性**：向后兼容，在根路径部署时仍能正常工作
-- **架构**：Nginx → Gunicorn → Flask + PrefixMiddleware
-
-### Deployment
-- 使用Supervisor管理应用进程
-- Gunicorn作为WSGI服务器（2 workers）
-- Nginx作为反向代理，设置 `X-Script-Name` header
-
-### Breaking Changes
-无破坏性变更。所有修改向后兼容。
+## [Unreleased]
 
 ---
 
-## [2.0.0] - 2026-01-XX (Previous Version)
+## [2.1.1] - 2026-01-24
 
-### Features
-- ELO排名系统
-- 联赛对比功能
-- 比赛记录查询
-- 每周ELO变化追踪
-- 玩家详情页面
-- 球队阵容查看
-- 算法详解页面
+### NBA ELO System Updates
 
-### Technical Stack
-- Backend: Flask (Python)
-- Database: SQLite
-- Frontend: Bootstrap 5, Chart.js
-- Deployment: Nginx + Gunicorn + Supervisor
+#### Added
+- **"所属联赛" (League Affiliation) column** in the main leaderboard
+  - Shows which league each player belongs to (玉衡盟, 天权盟, 天玑盟, 天璇盟, 天枢盟)
+  - Displayed with blue badge styling between "玩家" and "ELO" columns
+  - Data sourced from `matches` table via `league_name` field
+
+#### Fixed
+- **Leagues page player detail links** 
+  - Changed from hardcoded `/player/{player_id}` to `url_for('player_detail', player_id=...)`
+  - Links now correctly include `/NBA/waiverleague/` prefix
+  - Resolves 404 errors when clicking player details from leagues page
+
+#### Changed
+- **Backend query optimization**
+  - Modified `@app.route('/')` to JOIN `matches` table for league information
+  - Added `league_name` field to player data dictionary
+  - No database schema changes required
+
+#### Technical Details
+- Files modified:
+  - `nba_elo/app.py` - Added league_name query (3 changes)
+  - `nba_elo/templates/index.html` - Added league column (2 changes)
+  - `nba_elo/templates/leagues.html` - Fixed URL generation (1 change)
+- Deployment: Production server (129.204.8.241)
+- Status: ✅ Verified and running
 
 ---
 
-## Migration Guide
+## [2.1.0] - 2026-01-22
 
-### From 2.0.x to 2.1.0
+### NBA ELO System Major Update
 
-如果你从旧版本升级，需要：
+#### Added
+- **Complete web interface redesign**
+  - Modern Bootstrap 5 UI with gradient cards
+  - Responsive mobile-friendly design
+  - Interactive charts using Chart.js
+  
+- **New pages**
+  - `/` - Main ELO leaderboard with comprehensive stats
+  - `/leagues` - Five league comparison dashboard
+  - `/matches` - Match history with filtering
+  - `/weekly_elo` - Weekly ELO progression tracking
+  - `/player/<id>` - Individual player detail pages
+  - `/roster/<league_id>/<team_key>` - Team roster viewing
+  - `/algorithm` - ELO algorithm explanation with math formulas
 
-1. **更新 app.py**
-   ```bash
-   # 在应用初始化部分添加中间件
-   app.wsgi_app = PrefixMiddleware(app.wsgi_app)
-   ```
+- **Advanced features**
+  - 11-category tie adjustment for accurate scoring
+  - Dynamic K-factor based on games played
+  - Peak/valley ELO tracking
+  - Click-through navigation between all pages
+  - Real-time data updates from Yahoo API
 
-2. **更新模板文件**
-   - 检查所有模板中的硬编码路径
-   - 将 `href="/path/..."` 改为 `href="{{ url_for('route_name', ...) }}"`
-   - 将 `onclick="window.location='/path/...'"` 改为 `onclick="window.location='{{ url_for(...) }}'"`
+#### Changed
+- **Database structure**
+  - New `players` table with comprehensive stats
+  - New `matches` table with detailed match data
+  - New `leagues` table for league metadata
+  - New `system_info` table for sync tracking
 
-3. **更新Nginx配置**（如果使用子路径部署）
-   ```nginx
-   location /NBA/waiverleague/ {
-       proxy_pass http://127.0.0.1:5000/;
-       proxy_set_header X-Script-Name /NBA/waiverleague;
-       # ... 其他配置
-   }
-   ```
+- **Deployment architecture**
+  - Nginx reverse proxy at `/NBA/waiverleague/`
+  - Gunicorn WSGI server with 2 workers
+  - Supervisor process management
+  - Custom middleware for path prefix handling
 
-4. **重启应用**
-   ```bash
-   sudo supervisorctl restart nba_elo
-   ```
+#### Technical Details
+- Python version: 3.x
+- Framework: Flask
+- Database: SQLite 3
+- Frontend: Bootstrap 5, Chart.js, MathJax
+- Port: 5000
+- URL: http://129.204.8.241/NBA/waiverleague/
 
-### Verification
-部署后验证以下URL：
-- ✅ `/NBA/waiverleague/`
-- ✅ `/NBA/waiverleague/leagues`
-- ✅ `/NBA/waiverleague/matches`
-- ✅ `/NBA/waiverleague/weekly_elo`
-- ✅ `/NBA/waiverleague/algorithm`
-- ✅ `/NBA/waiverleague/player/<player_id>`
-- ✅ `/NBA/waiverleague/roster/<league_id>/<team_key>`
+---
+
+## [2.0.0] - Earlier
+
+### Initial Three-System Architecture
+
+#### Added
+- **NBA ELO System** (Port 5000)
+  - 80 players across 5 leagues
+  - Professional ELO rating algorithm
+  
+- **Individual Competition** (Port 5001)
+  - 16 players across 4 leagues (MLB, NFL, NHL, NBA)
+  - Regular season + playoff scoring
+  
+- **Team Competition** (Port 5002)
+  - 12 teams across 5 leagues (MLB, NFL, NHL, NBA, EPL)
+  - Power ranking integration
+
+---
+
+## Version Comparison
+
+| Version | NBA ELO Features | Files | Changes |
+|---------|------------------|-------|---------|
+| 2.1.1   | + League column, Fixed links | 3 | Minor enhancements |
+| 2.1.0   | Full web interface, 7 pages | 20+ | Major redesign |
+| 2.0.0   | Basic ELO system | - | Initial release |
+
+---
+
+## Upgrade Notes
+
+### From 2.1.0 to 2.1.1
+1. Backup files: `app.py`, `index.html`, `leagues.html`
+2. Replace with new versions
+3. Restart service: `sudo supervisorctl restart nba_elo`
+4. Verify league column appears on homepage
+5. Test player links from leagues page
+
+### From 2.0.0 to 2.1.0
+1. Complete database migration required
+2. New templates and static files
+3. Nginx and Supervisor configuration updates
+4. See `PROJECT_COMPLETION_GUIDE_v2.1.md` for details
+
+---
+
+## Links
+
+- Repository: https://github.com/QooBeeLindor/jiumai-fantasy-sports
+- Issues: https://github.com/QooBeeLindor/jiumai-fantasy-sports/issues
+- Roadmap: [JIUMAI_FANTASY_PROJECT_ROADMAP.md](JIUMAI_FANTASY_PROJECT_ROADMAP.md)
+
+---
+
+## Legend
+
+- `Added` - New features
+- `Changed` - Changes in existing functionality
+- `Deprecated` - Soon-to-be removed features
+- `Removed` - Removed features
+- `Fixed` - Bug fixes
+- `Security` - Vulnerability fixes
+
+---
+
+**Note**: This changelog focuses on the NBA ELO System. For Individual Competition and Team Competition updates, see their respective documentation.

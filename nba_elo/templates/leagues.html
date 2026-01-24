@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}联赛对比 - 九麦NBA竞价选秀范特西联赛{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-3">
+                <i class="bi bi-grid-3x3-gap-fill"></i> 五盟对比
+            </h2>
+            <p class="text-muted">
+                北斗五星，竞价格局 - 横向对比五个竞价选秀联赛的整体实力
+            </p>
+        </div>
+    </div>
+
+    <!-- 联赛统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> 联赛数据概览</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>联赛</th>
+                                    <th class="text-center">队伍数</th>
+                                    <th class="text-center">当前周数</th>
+                                    <th class="text-center">比赛场数</th>
+                                    <th class="text-center">平均ELO</th>
+                                    <th class="text-center">平均得分</th>
+                                    <th class="text-center">盟内排名</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for league in leagues %}
+                                <tr>
+                                    <td>
+                                        <strong class="league-badge">{{ league.name }}</strong>
+                                    </td>
+                                    <td class="text-center">{{ league.teams }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">第{{ league.week }}周</span>
+                                    </td>
+                                    <td class="text-center">{{ league.matches }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info text-dark">{{ league.avg_elo }}</span>
+                                    </td>
+                                    <td class="text-center">{{ league.avg_score }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#league{{ loop.index }}">
+                                            <i class="bi bi-eye"></i> 查看
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="collapse" id="league{{ loop.index }}">
+                                    <td colspan="7" class="p-0">
+                                        <div class="bg-light p-3">
+                                            <h6 class="mb-3">
+                                                <i class="bi bi-trophy"></i> 
+                                                {{ league.name }} - 盟内排名
+                                            </h6>
+                                            {% if league.players %}
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-striped mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>排名</th>
+                                                            <th>玩家</th>
+                                                            <th class="text-center">ELO</th>
+                                                            <th class="text-center">战绩</th>
+                                                            <th class="text-center">操作</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for player in league.players %}
+                                                        <tr>
+                                                            <td>
+                                                                <span class="badge {% if player.rank == 1 %}bg-warning text-dark{% elif player.rank <= 3 %}bg-success{% else %}bg-secondary{% endif %}">
+                                                                    #{{ player.rank }}
+                                                                </span>
+                                                            </td>
+                                                            <td><strong>{{ player.nickname }}</strong></td>
+                                                            <td class="text-center">{{ player.elo }}</td>
+                                                            <td class="text-center">
+                                                                <small>{{ player.record }}</small>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <a href="{{ url_for('player_detail', player_id=player.player_id) }}" 
+                                                                   class="btn btn-xs btn-outline-primary btn-sm">
+                                                                    详情
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            {% else %}
+                                            <p class="text-muted mb-0">暂无数据</p>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 联赛强度对比图表 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-speedometer2"></i> 平均ELO对比</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="eloChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> 比赛场数对比</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="matchesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 说明卡片 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-primary">
+                <h6 class="alert-heading">
+                    <i class="bi bi-lightbulb-fill"></i> 关于北斗五星联赛命名
+                </h6>
+                <p class="mb-0">
+                    <strong>天枢、天璇、天玑、天权、玉衡</strong> - 取自北斗七星前五星，按亮度排序。
+                    明年五盟将合并为竞价选秀阶梯联赛，各盟季后赛前三和ELO系统最高分者共16人晋级一级盟。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 平均ELO对比图表
+const leagueNames = {{ leagues | map(attribute='name') | list | tojson }};
+const avgElos = {{ leagues | map(attribute='avg_elo') | list | tojson }};
+
+// 将 'N/A' 转换为 0
+const eloData = avgElos.map(elo => elo === 'N/A' ? 0 : parseFloat(elo));
+
+const eloCtx = document.getElementById('eloChart').getContext('2d');
+new Chart(eloCtx, {
+    type: 'bar',
+    data: {
+        labels: leagueNames,
+        datasets: [{
+            label: '平均ELO',
+            data: eloData,
+            backgroundColor: [
+                'rgba(102, 126, 234, 0.8)',
+                'rgba(118, 75, 162, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(75, 192, 192, 0.8)'
+            ],
+            borderColor: [
+                'rgb(102, 126, 234)',
+                'rgb(118, 75, 162)',
+                'rgb(255, 99, 132)',
+                'rgb(255, 159, 64)',
+                'rgb(75, 192, 192)'
+            ],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: false,
+                min: 1400,
+                max: 1600
+            }
+        }
+    }
+});
+
+// 比赛场数对比图表
+const matches = {{ leagues | map(attribute='matches') | list | tojson }};
+
+const matchesCtx = document.getElementById('matchesChart').getContext('2d');
+new Chart(matchesCtx, {
+    type: 'bar',
+    data: {
+        labels: leagueNames,
+        datasets: [{
+            label: '比赛场数',
+            data: matches,
+            backgroundColor: 'rgba(255, 193, 7, 0.8)',
+            borderColor: 'rgb(255, 193, 7)',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+
+<style>
+    .league-badge {
+        font-size: 1rem;
+        padding: 0.5em 1em;
+    }
+    
+    .btn-xs {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .collapse {
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}

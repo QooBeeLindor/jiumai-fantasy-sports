@@ -134,9 +134,9 @@ def index():
             
             win_rate = ((wins + 0.5 * ties) / games * 100) if games > 0 else 0
             
-            # 获取玩家的team_key和league_id（从最近一场比赛）
+            # 🆕 修改：获取玩家的team_key、league_id和league_name（从最近一场比赛）
             recent_match = conn.execute('''
-                SELECT league_id,
+                SELECT league_id, league_name,
                        CASE 
                            WHEN team1_manager_id = ? THEN team1_id
                            WHEN team2_manager_id = ? THEN team2_id
@@ -150,6 +150,7 @@ def index():
             
             team_key = recent_match['team_key'] if recent_match else None
             league_id = recent_match['league_id'] if recent_match else None
+            league_name = recent_match['league_name'] if recent_match else '未知'  # 🆕 新增
             
             # 计算峰值和低谷（从所有比赛中的ELO）
             elo_stats = conn.execute('''
@@ -179,7 +180,8 @@ def index():
                 'highest': highest_elo,
                 'lowest': lowest_elo,
                 'team_key': team_key,
-                'league_id': league_id
+                'league_id': league_id,
+                'league_name': league_name  # 🆕 新增：联赛名称
             })
         
         conn.close()
