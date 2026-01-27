@@ -8,7 +8,7 @@
 
 | 系统 | 访问地址 | 状态 |
 |------|---------|------|
-| NBA竞价选秀ELO | [jiumaifantasy.online](http://jiumaifantasy.online) | ✅ |
+| NBA竞价选秀ELO | [http://129.204.8.241/NBA/waiverleague/](http://129.204.8.241/NBA/waiverleague/) | ✅ |
 | 铁人个人赛 | [jiumaifantasy.online/ironman](http://jiumaifantasy.online/ironman/individual) | ✅ |
 | 铁人团队赛 | [jiumaifantasy.online/irongroup](http://jiumaifantasy.online/irongroup/leaderboard) | ✅ |
 
