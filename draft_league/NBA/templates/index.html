@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}联赛列表 - NBA蛇形选秀联赛{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>🏀 NBA蛇形选秀联赛</h1>
+    <p class="subtitle">2025赛季 | ELO评分系统</p>
+</div>
+
+{% for tier, leagues in leagues_by_tier.items() %}
+    {% if tier > 0 %}
+    <div class="tier-section">
+        <h2 class="tier-title">
+            {% if tier == 1 %}🏆 第一级联赛
+            {% elif tier == 2 %}🥈 第二级联赛
+            {% elif tier == 3 %}🥉 第三级联赛
+            {% elif tier == 4 %}📊 第四级联赛
+            {% endif %}
+        </h2>
+        <div class="leagues-grid">
+            {% for league in leagues %}
+            <a href="/league/{{ league.id }}" class="league-card">
+                <h3>{{ league.name }}</h3>
+                <div class="league-info">
+                    <span>初始ELO: {{ league.initial_elo }}</span>
+                    <span>玩家数: {{ league.player_count }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+{% endblock %}

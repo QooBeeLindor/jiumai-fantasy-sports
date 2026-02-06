@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overall Roto排行榜 - NBA九麦Draft League</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            color: #667eea;
+            font-size: 2em;
+            font-weight: bold;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .controls select, .controls input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            min-width: 200px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        .controls select:focus, .controls input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .roto-explanation {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .roto-explanation h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .roto-explanation p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+
+        .roto-explanation .formula {
+            background: #f8f9ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .roto-explanation .note {
+            background: #fff8e1;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #ffc107;
+            margin-top: 10px;
+            font-size: 0.95em;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1400px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        thead th {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9em;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        thead th:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        thead th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.5;
+            font-size: 0.8em;
+        }
+
+        thead th.sorted-asc::after {
+            content: ' ▲';
+            opacity: 1;
+        }
+
+        thead th.sorted-desc::after {
+            content: ' ▼';
+            opacity: 1;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        tbody td {
+            padding: 10px 8px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .rank-cell {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1em;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .medal {
+            font-size: 1.3em;
+            margin-right: 3px;
+        }
+
+        .team-name {
+            font-weight: 600;
+            color: #333;
+            text-align: left;
+            padding-left: 12px !important;
+        }
+
+        .league-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .league-rank {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            font-size: 0.85em;
+            color: #1976d2;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .points {
+            font-weight: 600;
+            color: #764ba2;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .stat-value {
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-weight: 500;
+        }
+
+        .view-details {
+            padding: 5px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+
+        .view-details:hover {
+            background: #764ba2;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-item .stat-name {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+
+        .stat-item .stat-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .stat-item .stat-rank {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-top: 3px;
+        }
+
+        .stat-item .stat-points {
+            color: #764ba2;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .nav-buttons {
+            margin-bottom: 20px;
+        }
+
+        .nav-buttons a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-right: 10px;
+            transition: all 0.2s;
+        }
+
+        .nav-buttons a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 固定前3列 */
+        .fixed-col {
+            position: sticky;
+            background: white;
+            z-index: 5;
+        }
+
+        .fixed-col-1 {
+            left: 0;
+        }
+
+        .fixed-col-2 {
+            left: 60px;
+        }
+
+        .fixed-col-3 {
+            left: 280px;
+        }
+
+        thead .fixed-col {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 15;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            table {
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航 -->
+        <div class="nav-buttons">
+            <a href="index_updated.html">← 返回主页</a>
+            <a href="adp_simple.html">ADP排行</a>
+            <a href="standings.html">战绩排行</a>
+            <a href="fa_rankings.html">FA排行</a>
+            <a href="schedule_enhanced.html">比赛日历</a>
+        </div>
+
+        <!-- 标题 -->
+        <div class="header">
+            <h1>🏆 Overall Roto排行榜</h1>
+            <div class="subtitle">跨12个联赛的192个team总排名</div>
+        </div>
+
+        <!-- 统计概览 -->
+        <div class="stats-overview" id="statsOverview">
+            <div class="stat-card">
+                <div class="label">总Team数</div>
+                <div class="value" id="totalTeams">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">平均积分</div>
+                <div class="value" id="avgPoints">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">最高积分</div>
+                <div class="value" id="maxPoints">-</div>
+            </div>
+        </div>
+
+        <!-- Roto积分计算说明 -->
+        <div class="roto-explanation">
+            <h3>📊 Roto积分计算方法</h3>
+            <p><strong>基本规则：</strong>192个team在11个统计项目中分别排名，第1名得192分，第2名得191分...第192名得1分。</p>
+            <p><strong>11个比项：</strong>FG%、FT%、3PTM、PTS、OREB、REB、AST、ST、BLK、TO（越低越好）、A/T</p>
+            <div class="formula">
+                总Roto积分 = FG%积分 + FT%积分 + 3PTM积分 + ... + A/T积分（11项之和）
+            </div>
+            <p><strong>数据相同处理：</strong>多人并列时平分积分。例如4人并列第1，则积分为(192+191+190+189)/4=190.5分</p>
+            <div class="note">
+                ⚠️ 本Roto积分本质图一乐，NBA H2H范特西联赛有清洁流、暴力流、控分流等众多流派，追求优势的比项和程度都不一样，不能反应真实状况。
+            </div>
+        </div>
+
+        <!-- 控制栏 -->
+        <div class="controls">
+            <div class="controls-row">
+                <select id="leagueFilter">
+                    <option value="">全部联赛</option>
+                </select>
+                <input type="text" id="searchBox" placeholder="搜索Team...">
+                <select id="limitFilter">
+                    <option value="50">前50名</option>
+                    <option value="100">前100名</option>
+                    <option value="200" selected>全部</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 排行榜表格 -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="fixed-col fixed-col-1 sortable" style="width:60px" onclick="sortBy('rank')">排名</th>
+                        <th class="fixed-col fixed-col-2 sortable" style="width:220px" onclick="sortBy('team')">Team</th>
+                        <th class="fixed-col fixed-col-3 sortable" style="width:120px" onclick="sortBy('league')">联赛</th>
+                        <th class="sortable" style="width:80px" onclick="sortBy('leagueRank')">盟内排名</th>
+                        <th class="sortable" style="width:80px" onclick="sortBy('total')">总积分</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('fg')">FG%</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('ft')">FT%</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('3pm')">3PTM</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('pts')">PTS</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('oreb')">OREB</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('reb')">REB</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('ast')">AST</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('st')">ST</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('blk')">BLK</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('to')">TO</th>
+                        <th class="sortable" style="width:70px" onclick="sortBy('at')">A/T</th>
+                        <th style="width:80px">详情</th>
+                    </tr>
+                </thead>
+                <tbody id="rankingsTable">
+                    <tr><td colspan="17" class="loading">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div class="modal" id="detailsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Team详情</h2>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div id="modalBody">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001/api';
+        let allData = [];
+        let currentData = [];
+        let currentSort = { column: 'rank', direction: 'asc' };
+
+        // 初始化
+        async function init() {
+            await loadStats();
+            await loadLeagues();
+            await loadRankings();
+        }
+
+        // 加载统计信息
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/overall_roto/stats`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const stats = result.data;
+                    document.getElementById('totalTeams').textContent = stats.total_teams;
+                    document.getElementById('avgPoints').textContent = stats.avg_points.toFixed(1);
+                    document.getElementById('maxPoints').textContent = stats.max_points.toFixed(1);
+                }
+            } catch (error) {
+                console.error('加载统计信息失败:', error);
+            }
+        }
+
+        // 加载联赛列表
+        async function loadLeagues() {
+            try {
+                const response = await fetch(`${API_BASE}/overall_roto/leagues`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const select = document.getElementById('leagueFilter');
+                    result.data.forEach(league => {
+                        const option = document.createElement('option');
+                        option.value = league.name;
+                        option.textContent = league.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载联赛列表失败:', error);
+            }
+        }
+
+        // 加载排行榜
+        async function loadRankings() {
+            const limit = document.getElementById('limitFilter').value;
+            const league = document.getElementById('leagueFilter').value;
+            
+            try {
+                let url = `${API_BASE}/overall_roto/rankings?limit=${limit}`;
+                if (league) {
+                    url += `&league=${encodeURIComponent(league)}`;
+                }
+                
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    allData = result.data;
+                    
+                    // 计算联赛内排名
+                    calculateLeagueRanks();
+                    
+                    currentData = allData;
+                    renderTable(currentData);
+                } else {
+                    document.getElementById('rankingsTable').innerHTML = 
+                        `<tr><td colspan="17" style="text-align:center;color:red;">
+                            ${result.error || '加载失败'}
+                        </td></tr>`;
+                }
+            } catch (error) {
+                console.error('加载排行榜失败:', error);
+                document.getElementById('rankingsTable').innerHTML = 
+                    `<tr><td colspan="17" style="text-align:center;color:red;">
+                        加载失败，请确保API服务器正在运行
+                    </td></tr>`;
+            }
+        }
+
+        // 计算联赛内排名
+        function calculateLeagueRanks() {
+            const leagueGroups = {};
+            
+            // 按联赛分组
+            allData.forEach(team => {
+                if (!leagueGroups[team.league]) {
+                    leagueGroups[team.league] = [];
+                }
+                leagueGroups[team.league].push(team);
+            });
+            
+            // 为每个联赛计算内部排名
+            Object.keys(leagueGroups).forEach(league => {
+                const teams = leagueGroups[league];
+                teams.sort((a, b) => b.total_roto_points - a.total_roto_points);
+                teams.forEach((team, index) => {
+                    team.league_rank = index + 1;
+                });
+            });
+        }
+
+        // 渲染表格
+        function renderTable(data) {
+            const tbody = document.getElementById('rankingsTable');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;">暂无数据</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = data.map(team => {
+                let medal = '';
+                if (team.rank === 1) medal = '🥇';
+                else if (team.rank === 2) medal = '🥈';
+                else if (team.rank === 3) medal = '🥉';
+                
+                const stats = team.stats || {};
+                
+                return `
+                    <tr>
+                        <td class="rank-cell fixed-col fixed-col-1">${medal} ${team.rank}</td>
+                        <td class="team-name fixed-col fixed-col-2">${team.team_name}</td>
+                        <td class="fixed-col fixed-col-3">
+                            <span class="league-badge">${team.league}</span>
+                        </td>
+                        <td><span class="league-rank">#${team.league_rank || '-'}</span></td>
+                        <td class="points">${team.total_roto_points.toFixed(1)}</td>
+                        <td class="stat-value">${(stats['FG%']?.value || 0).toFixed(3)}</td>
+                        <td class="stat-value">${(stats['FT%']?.value || 0).toFixed(3)}</td>
+                        <td class="stat-value">${Math.round(stats['3PTM']?.value || 0)}</td>
+                        <td class="stat-value">${Math.round(stats['PTS']?.value || 0)}</td>
+                        <td class="stat-value">${Math.round(stats['OREB']?.value || 0)}</td>
+                        <td class="stat-value">${Math.round(stats['REB']?.value || 0)}</td>
+                        <td class="stat-value">${Math.round(stats['AST']?.value || 0)}</td>
+                        <td class="stat-value">${Math.round(stats['ST']?.value || 0)}</td>
+                        <td class="stat-value">${Math.round(stats['BLK']?.value || 0)}</td>
+                        <td class="stat-value">${Math.round(stats['TO']?.value || 0)}</td>
+                        <td class="stat-value">${(stats['A/T']?.value || 0).toFixed(2)}</td>
+                        <td>
+                            <button class="view-details" onclick="viewDetails(${team.rank})">
+                                查看详情
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 排序功能
+        function sortBy(column) {
+            // 更新排序状态
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+            
+            // 更新表头样式
+            document.querySelectorAll('thead th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+            });
+            
+            const sortedTh = event.target;
+            sortedTh.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+            
+            // 排序数据
+            currentData.sort((a, b) => {
+                let aVal, bVal;
+                
+                switch(column) {
+                    case 'rank':
+                        aVal = a.rank;
+                        bVal = b.rank;
+                        break;
+                    case 'team':
+                        aVal = a.team_name;
+                        bVal = b.team_name;
+                        break;
+                    case 'league':
+                        aVal = a.league;
+                        bVal = b.league;
+                        break;
+                    case 'leagueRank':
+                        aVal = a.league_rank || 999;
+                        bVal = b.league_rank || 999;
+                        break;
+                    case 'total':
+                        aVal = a.total_roto_points;
+                        bVal = b.total_roto_points;
+                        break;
+                    case 'fg':
+                        aVal = a.stats['FG%']?.value || 0;
+                        bVal = b.stats['FG%']?.value || 0;
+                        break;
+                    case 'ft':
+                        aVal = a.stats['FT%']?.value || 0;
+                        bVal = b.stats['FT%']?.value || 0;
+                        break;
+                    case '3pm':
+                        aVal = a.stats['3PTM']?.value || 0;
+                        bVal = b.stats['3PTM']?.value || 0;
+                        break;
+                    case 'pts':
+                        aVal = a.stats['PTS']?.value || 0;
+                        bVal = b.stats['PTS']?.value || 0;
+                        break;
+                    case 'oreb':
+                        aVal = a.stats['OREB']?.value || 0;
+                        bVal = b.stats['OREB']?.value || 0;
+                        break;
+                    case 'reb':
+                        aVal = a.stats['REB']?.value || 0;
+                        bVal = b.stats['REB']?.value || 0;
+                        break;
+                    case 'ast':
+                        aVal = a.stats['AST']?.value || 0;
+                        bVal = b.stats['AST']?.value || 0;
+                        break;
+                    case 'st':
+                        aVal = a.stats['ST']?.value || 0;
+                        bVal = b.stats['ST']?.value || 0;
+                        break;
+                    case 'blk':
+                        aVal = a.stats['BLK']?.value || 0;
+                        bVal = b.stats['BLK']?.value || 0;
+                        break;
+                    case 'to':
+                        aVal = a.stats['TO']?.value || 0;
+                        bVal = b.stats['TO']?.value || 0;
+                        break;
+                    case 'at':
+                        aVal = a.stats['A/T']?.value || 0;
+                        bVal = b.stats['A/T']?.value || 0;
+                        break;
+                }
+                
+                if (typeof aVal === 'string') {
+                    return currentSort.direction === 'asc' 
+                        ? aVal.localeCompare(bVal) 
+                        : bVal.localeCompare(aVal);
+                } else {
+                    return currentSort.direction === 'asc' 
+                        ? aVal - bVal 
+                        : bVal - aVal;
+                }
+            });
+            
+            renderTable(currentData);
+        }
+
+        // 查看详情
+        function viewDetails(rank) {
+            const team = allData.find(t => t.rank == rank);
+            if (!team) return;
+            
+            document.getElementById('modalTitle').textContent = 
+                `#${team.rank} ${team.team_name}`;
+            
+            const stats = team.stats || {};
+            const statCategories = ['FG%', 'FT%', '3PTM', 'PTS', 'OREB', 'REB', 'AST', 'ST', 'BLK', 'TO', 'A/T'];
+            
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <p><strong>联赛:</strong> ${team.league} <span class="league-rank">#${team.league_rank}</span></p>
+                    <p><strong>总Roto积分:</strong> <span style="color:#764ba2;font-weight:bold;font-size:1.3em;">${team.total_roto_points.toFixed(2)}</span></p>
+                </div>
+                <h3 style="margin-bottom:15px;color:#667eea;">各项统计详情</h3>
+                <div class="stats-grid">
+                    ${statCategories.map(stat => {
+                        const statInfo = stats[stat] || {};
+                        return `
+                            <div class="stat-item">
+                                <div class="stat-name">${stat}</div>
+                                <div class="stat-value">${(statInfo.value || 0).toFixed(3)}</div>
+                                <div class="stat-rank">排名: #${statInfo.rank || '-'}</div>
+                                <div class="stat-points">积分: ${(statInfo.roto_points || 0).toFixed(2)}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            document.getElementById('detailsModal').classList.add('active');
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('detailsModal').classList.remove('active');
+        }
+
+        // 搜索
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase();
+            if (!keyword) {
+                currentData = allData;
+            } else {
+                currentData = allData.filter(team => 
+                    team.team_name.toLowerCase().includes(keyword)
+                );
+            }
+            renderTable(currentData);
+        });
+
+        // 筛选变化
+        document.getElementById('leagueFilter').addEventListener('change', loadRankings);
+        document.getElementById('limitFilter').addEventListener('change', loadRankings);
+
+        // 点击模态框外部关闭
+        document.getElementById('detailsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailsModal') {
+                closeModal();
+            }
+        });
+
+        // 初始化
+        init();
+    </script>
+</body>
+</html>

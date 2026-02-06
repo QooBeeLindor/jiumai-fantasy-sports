@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战绩排行榜 - NBA Draft League</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f3f4f6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            opacity: 0.9;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #10b981;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        label {
+            font-weight: 600;
+            color: #374151;
+            margin-right: 10px;
+        }
+        select {
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+        select:focus {
+            border-color: #10b981;
+        }
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #f9fafb;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        th.center {
+            text-align: center;
+        }
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        td.center {
+            text-align: center;
+        }
+        tr:hover {
+            background: #f9fafb;
+        }
+        .rank {
+            font-size: 20px;
+            font-weight: bold;
+            color: #10b981;
+        }
+        .rank.top3 {
+            color: #f59e0b;
+        }
+        .player-name {
+            font-weight: 600;
+            color: #111827;
+        }
+        .league-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .tier-1 { background: #fef3c7; color: #92400e; }
+        .tier-2 { background: #e0e7ff; color: #3730a3; }
+        .tier-3 { background: #dbeafe; color: #1e40af; }
+        .tier-4 { background: #dcfce7; color: #166534; }
+        .record {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .win-pct {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .win-pct.high { color: #059669; }
+        .win-pct.mid { color: #f59e0b; }
+        .win-pct.low { color: #dc2626; }
+        .streak {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .streak-W {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .streak-L {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .streak-T {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .btn-detail {
+            padding: 6px 12px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        .btn-detail:hover {
+            background: #059669;
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        .modal-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .total-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .total-stat-card {
+            text-align: center;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .total-stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #10b981;
+        }
+        .total-stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #111827;
+        }
+        .leagues-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .league-card {
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .league-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .recent-matches {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .match-item {
+            padding: 12px;
+            border-left: 4px solid #e5e7eb;
+            margin-bottom: 10px;
+            background: #f9fafb;
+            border-radius: 4px;
+        }
+        .match-item.win {
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }
+        .match-item.loss {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .match-item.tie {
+            border-left-color: #6b7280;
+            background: #f9fafb;
+        }
+        .info-text {
+            text-align: center;
+            color: #6b7280;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏆 战绩排行榜</h1>
+            <p class="subtitle">2025-26 赛季玩家战绩统计</p>
+        </header>
+
+        <!-- 统计概览 -->
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">总玩家数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">总比赛数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">多联赛玩家</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">最高胜率</div>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="controls">
+            <div class="control-row">
+                <div>
+                    <label for="leagueFilter">联赛筛选：</label>
+                    <select id="leagueFilter">
+                        <option value="">所有联赛</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="sortBy">排序方式：</label>
+                    <select id="sortBy">
+                        <option value="win_rate">按胜率</option>
+                        <option value="wins">按胜场</option>
+                        <option value="matches_played">按场次</option>
+                    </select>
+                </div>
+                <div style="margin-left: auto; color: #6b7280; font-size: 14px;">
+                    <span id="resultCount">显示 0 条记录</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="error"></div>
+
+        <!-- 战绩表格 -->
+        <table>
+            <thead>
+                <tr>
+                    <th class="center">排名</th>
+                    <th>玩家</th>
+                    <th>联赛</th>
+                    <th class="center">战绩</th>
+                    <th class="center">比赛</th>
+                    <th class="center">胜率</th>
+                    <th class="center">连胜/连败</th>
+                    <th class="center">操作</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="8" class="loading">加载中...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 玩家详情模态框 -->
+    <div class="modal" id="playerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalPlayerName">玩家详情</div>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001';
+        let allStandings = [];
+        let leagues = [];
+
+        // 加载统计数据
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/standings/stats`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.data;
+                    const statCards = document.querySelectorAll('.stat-card');
+                    statCards[0].querySelector('.stat-value').textContent = stats.total_players;
+                    statCards[1].querySelector('.stat-value').textContent = stats.total_matches;
+                    statCards[2].querySelector('.stat-value').textContent = stats.multi_league_players;
+                    
+                    if (stats.top_player) {
+                        statCards[3].querySelector('.stat-value').textContent = 
+                            `${stats.top_player.win_percentage}%`;
+                        statCards[3].querySelector('.stat-label').textContent = 
+                            `${stats.top_player.name} (${stats.top_player.league})`;
+                    }
+                }
+            } catch (error) {
+                console.error('加载统计失败:', error);
+            }
+        }
+
+        // 加载联赛列表
+        async function loadLeagues() {
+            try {
+                const response = await fetch(`${API_BASE}/api/standings/leagues`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    leagues = data.data;
+                    const select = document.getElementById('leagueFilter');
+                    
+                    leagues.forEach(league => {
+                        const option = document.createElement('option');
+                        option.value = league.id;
+                        option.textContent = league.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载联赛列表失败:', error);
+            }
+        }
+
+        // 加载战绩数据
+        async function loadStandings() {
+            const leagueId = document.getElementById('leagueFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+            
+            try {
+                const params = new URLSearchParams();
+                if (leagueId) params.append('league_id', leagueId);
+                if (sortBy) params.append('sort', sortBy);
+                
+                const response = await fetch(`${API_BASE}/api/standings/rankings?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    allStandings = data.data;
+                    renderTable();
+                    document.getElementById('resultCount').textContent = 
+                        `显示 ${allStandings.length} 条记录`;
+                } else {
+                    showError('加载失败：' + data.error);
+                }
+            } catch (error) {
+                showError('无法连接到API服务器');
+                console.error('加载战绩失败:', error);
+            }
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            
+            if (allStandings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="info-text">未找到数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allStandings.map((player, index) => {
+                const winPctClass = player.win_percentage >= 60 ? 'high' : 
+                                   player.win_percentage >= 40 ? 'mid' : 'low';
+                const rankClass = index < 3 ? 'rank top3' : 'rank';
+                const tierClass = `tier-${player.tier}`;
+                
+                let streakHtml = '';
+                if (player.streak && player.streak.count > 0) {
+                    const streakType = player.streak.type;
+                    const streakLabel = streakType === 'W' ? '胜' : 
+                                       streakType === 'L' ? '负' : '平';
+                    streakHtml = `<span class="streak streak-${streakType}">${streakType}${player.streak.count}</span>`;
+                }
+                
+                return `
+                    <tr>
+                        <td class="center"><span class="${rankClass}">#${player.rank}</span></td>
+                        <td><div class="player-name">${player.player_name}</div></td>
+                        <td><span class="league-badge ${tierClass}">${player.league_name}</span></td>
+                        <td class="center"><span class="record">${player.record}</span></td>
+                        <td class="center">${player.matches_played}</td>
+                        <td class="center"><span class="win-pct ${winPctClass}">${player.win_percentage}%</span></td>
+                        <td class="center">${streakHtml}</td>
+                        <td class="center">
+                            <button class="btn-detail" onclick="showPlayerDetail(${player.player_id})">
+                                详情
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 显示玩家详情
+        async function showPlayerDetail(playerId) {
+            const modal = document.getElementById('playerModal');
+            const modalBody = document.getElementById('modalBody');
+            
+            modal.classList.add('active');
+            modalBody.innerHTML = '<div class="loading">加载中...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/standings/player/${playerId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const player = data.data;
+                    document.getElementById('modalPlayerName').textContent = player.player_name;
+                    
+                    modalBody.innerHTML = `
+                        <div class="total-stats">
+                            <div class="total-stat-card">
+                                <div class="total-stat-value">${player.total_stats.matches_played}</div>
+                                <div class="total-stat-label">总比赛</div>
+                            </div>
+                            <div class="total-stat-card">
+                                <div class="total-stat-value">${player.total_stats.wins}</div>
+                                <div class="total-stat-label">总胜场</div>
+                            </div>
+                            <div class="total-stat-card">
+                                <div class="total-stat-value">${player.total_stats.losses}</div>
+                                <div class="total-stat-label">总负场</div>
+                            </div>
+                            <div class="total-stat-card">
+                                <div class="total-stat-value">${player.total_stats.win_percentage}%</div>
+                                <div class="total-stat-label">总胜率</div>
+                            </div>
+                        </div>
+                        
+                        <div class="section-title">各联赛战绩</div>
+                        <div class="leagues-grid">
+                            ${player.leagues.map(league => {
+                                let streakHtml = '';
+                                if (league.streak && league.streak.count > 0) {
+                                    const streakType = league.streak.type;
+                                    streakHtml = `<span class="streak streak-${streakType}">${streakType}${league.streak.count}</span>`;
+                                }
+                                
+                                return `
+                                    <div class="league-card">
+                                        <div class="league-card-header">
+                                            <span class="league-badge tier-${league.tier}">${league.league_name}</span>
+                                            ${streakHtml}
+                                        </div>
+                                        <div style="margin-top: 10px;">
+                                            <div style="font-size: 24px; font-weight: bold; color: #10b981;">
+                                                ${league.win_percentage}%
+                                            </div>
+                                            <div style="color: #6b7280; font-size: 14px;">
+                                                ${league.record} (${league.matches_played}场)
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        
+                        <div class="section-title">最近比赛 (前20场)</div>
+                        <div class="recent-matches">
+                            ${player.recent_matches.map(match => {
+                                const matchClass = match.result === 'W' ? 'win' : 
+                                                  match.result === 'L' ? 'loss' : 'tie';
+                                const resultLabel = match.result === 'W' ? '胜' : 
+                                                   match.result === 'L' ? '负' : '平';
+                                
+                                return `
+                                    <div class="match-item ${matchClass}">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                            <strong>第${match.week}周 - ${match.league_name}</strong>
+                                            <span style="font-weight: bold;">${resultLabel}</span>
+                                        </div>
+                                        <div style="color: #6b7280; font-size: 14px;">
+                                            vs ${match.opponent_name} - ${match.score}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                } else {
+                    modalBody.innerHTML = `<div class="error">加载失败：${data.error}</div>`;
+                }
+            } catch (error) {
+                modalBody.innerHTML = `<div class="error">加载失败</div>`;
+                console.error('加载玩家详情失败:', error);
+            }
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('playerModal').classList.remove('active');
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('playerModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // 显示错误
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+
+        // 事件监听
+        document.getElementById('leagueFilter').addEventListener('change', loadStandings);
+        document.getElementById('sortBy').addEventListener('change', loadStandings);
+
+        // 初始化
+        loadStats();
+        loadLeagues();
+        loadStandings();
+    </script>
+</body>
+</html>

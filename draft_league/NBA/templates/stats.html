@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Statistics</h1>
+<p>Leagues: {{ total_leagues }}</p>
+<p>Players: {{ total_players }}</p>
+<p>Matches: {{ total_matches }}</p>
+<h2>Top 10</h2>
+<ul>
+{% for p in top_players %}
+<li>{{ p.unified_name }} - {{ p.current_elo }}</li>
+{% endfor %}
+</ul>
+{% endblock %}

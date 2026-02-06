@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADP Rankings - Simple View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f3f4f6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            opacity: 0.9;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .search-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            outline: none;
+        }
+        input:focus {
+            border-color: #667eea;
+        }
+        .positions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .position-btn {
+            padding: 8px 16px;
+            border: none;
+            background: #e5e7eb;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .position-btn:hover {
+            background: #d1d5db;
+        }
+        .position-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #f9fafb;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        tr:hover {
+            background: #f9fafb;
+        }
+        .position-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .position-PG { background: #dbeafe; color: #1e40af; }
+        .position-SG { background: #dcfce7; color: #166534; }
+        .position-SF { background: #fef3c7; color: #92400e; }
+        .position-PF { background: #fee2e2; color: #991b1b; }
+        .position-C { background: #e9d5ff; color: #6b21a8; }
+        .adp-value {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 18px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏀 NBA Draft League</h1>
+            <p class="subtitle">2025-26 赛季 ADP排行榜 - 简化版</p>
+        </header>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">总球员数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">全选球员</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">联赛总数</div>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="搜索球员名称... (例如: Jokic)">
+            <div class="positions">
+                <button class="position-btn active" data-position="">全部</button>
+                <button class="position-btn" data-position="PG">PG</button>
+                <button class="position-btn" data-position="SG">SG</button>
+                <button class="position-btn" data-position="SF">SF</button>
+                <button class="position-btn" data-position="PF">PF</button>
+                <button class="position-btn" data-position="C">C</button>
+            </div>
+        </div>
+
+        <div id="error"></div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>排名</th>
+                    <th>球员</th>
+                    <th>位置</th>
+                    <th>ADP</th>
+                    <th>被选次数</th>
+                    <th>选秀范围</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="6" class="loading">加载中...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001';
+        let allPlayers = [];
+        let currentPosition = '';
+        let currentSearch = '';
+
+        // 加载统计数据
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/adp/stats`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.data;
+                    const statCards = document.querySelectorAll('.stat-card');
+                    statCards[0].querySelector('.stat-value').textContent = stats.total_players;
+                    statCards[1].querySelector('.stat-value').textContent = stats.fully_drafted;
+                    statCards[2].querySelector('.stat-value').textContent = stats.total_leagues;
+                }
+            } catch (error) {
+                console.error('加载统计失败:', error);
+            }
+        }
+
+        // 加载球员数据
+        async function loadPlayers() {
+            try {
+                const params = new URLSearchParams();
+                if (currentPosition) params.append('position', currentPosition);
+                if (currentSearch) params.append('search', currentSearch);
+
+                const response = await fetch(`${API_BASE}/api/adp/rankings?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    allPlayers = data.data;
+                    renderTable();
+                } else {
+                    showError('加载失败：' + data.error);
+                }
+            } catch (error) {
+                showError('无法连接到API服务器。请确保后端运行在 http://localhost:5001');
+                console.error('加载球员失败:', error);
+            }
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            
+            if (allPlayers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">未找到匹配的球员</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allPlayers.map((player, index) => `
+                <tr>
+                    <td><strong>#${index + 1}</strong></td>
+                    <td>${player.player_name}</td>
+                    <td>
+                        <span class="position-badge position-${player.position}">
+                            ${player.position || 'N/A'}
+                        </span>
+                    </td>
+                    <td class="adp-value">${player.adp}</td>
+                    <td>
+                        <div>${player.times_drafted}/12</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${player.drafted_percentage}%"></div>
+                        </div>
+                    </td>
+                    <td>${player.min_pick} - ${player.max_pick}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 显示错误
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+
+        // 搜索
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            currentSearch = e.target.value;
+            loadPlayers();
+        });
+
+        // 位置筛选
+        document.querySelectorAll('.position-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentPosition = btn.dataset.position;
+                loadPlayers();
+            });
+        });
+
+        // 初始化
+        loadStats();
+        loadPlayers();
+    </script>
+</body>
+</html>

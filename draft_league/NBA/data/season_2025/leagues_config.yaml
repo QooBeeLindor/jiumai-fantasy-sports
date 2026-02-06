@@ -1,0 +1,158 @@
+# 蛇形选秀联赛配置 2025-26赛季
+season: 2025
+
+# 联赛列表（按级别分组）
+leagues:
+  # 第一级（1个）
+  tier1:
+    - id: 2480
+      name: "NBA大师盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/2480"
+      tier: 1
+      teams: 16
+      initial_elo: 1500
+      promotion_slots: 0
+      relegation_slots: 6
+
+  # 第二级（3个）
+  tier2:
+    - id: 43705
+      name: "WEST盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/43705"
+      tier: 2
+      teams: 16
+      initial_elo: 1400
+      promotion_slots: 2
+      relegation_slots: 4
+      
+    - id: 77265
+      name: "EAST盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/77265"
+      tier: 2
+      teams: 16
+      initial_elo: 1400
+      promotion_slots: 2
+      relegation_slots: 4
+      
+    - id: 184003
+      name: "CENTRAL盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/184003"
+      tier: 2
+      teams: 16
+      initial_elo: 1400
+      promotion_slots: 2
+      relegation_slots: 4
+
+  # 第三级（4个）
+  tier3:
+    - id: 21587
+      name: "暴扣盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/21587"
+      tier: 3
+      teams: 16
+      initial_elo: 1300
+      promotion_slots: 3
+      relegation_slots: 4
+      
+    - id: 184016
+      name: "绝杀盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/184016"
+      tier: 3
+      teams: 16
+      initial_elo: 1300
+      promotion_slots: 3
+      relegation_slots: 4
+      
+    - id: 184036
+      name: "摘帽盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/184036"
+      tier: 3
+      teams: 16
+      initial_elo: 1300
+      promotion_slots: 3
+      relegation_slots: 4
+      
+    - id: 170361
+      name: "勾手盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/170361"
+      tier: 3
+      teams: 16
+      initial_elo: 1300
+      promotion_slots: 3
+      relegation_slots: 4
+
+  # 第四级（4个）
+  tier4:
+    - id: 184087
+      name: "力劈华山盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/184087"
+      tier: 4
+      teams: 16
+      initial_elo: 1200
+      promotion_slots: 4
+      relegation_slots: 0
+      
+    - id: 184105
+      name: "旱地拔葱盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/184105"
+      tier: 4
+      teams: 16
+      initial_elo: 1200
+      promotion_slots: 4
+      relegation_slots: 0
+      
+    - id: 184113
+      name: "鹰击长空盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/184113"
+      tier: 4
+      teams: 16
+      initial_elo: 1200
+      promotion_slots: 4
+      relegation_slots: 0
+      
+    - id: 184121
+      name: "凌空飞渡盟"
+      url: "https://basketball.fantasysports.yahoo.com/nba/184121"
+      tier: 4
+      teams: 16
+      initial_elo: 1200
+      promotion_slots: 4
+      relegation_slots: 0
+
+  # 特殊赛事
+  special:
+    - id: 360385
+      name: "全明星季中杯"
+      url: "https://basketball.fantasysports.yahoo.com/nba/360385"
+      tier: 0
+      teams: 16
+      start_week: 14
+      inherit_elo: true
+
+# 特殊玩家初始ELO
+special_players:
+  max: 1580
+  小恶魔: 1550
+  灰灰: 1550
+  谷子: 1550
+  黄三金: 1500
+
+# ELO计算参数
+elo_settings:
+  k_factor: 32
+  tie_adjustment:
+    enabled: true
+    tie_k_factor: 16
+  tier_multiplier:
+    same_tier: 1.0
+    one_tier_diff: 1.2
+    two_tiers_diff: 1.5
+    three_tiers_diff: 2.0
+  all_star_multiplier: 1.5
+
+# 赛季配置
+season_config:
+  regular_season_weeks: 22
+  playoff_start_week: 23
+  all_star_start_week: 14
+  data_sync_frequency: "weekly"

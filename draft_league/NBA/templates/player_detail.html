@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{{ player.unified_name }} - 球员详情{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>{{ player.unified_name }}</h1>
+    <p class="subtitle">显示名<p><a href="/">← 返回联赛列表</a></p>
+</div>
+
+<div class="rankings-section">
+    <h2>📊 各联赛ELO</h2>
+    <table class="rankings-table">
+        <thead>
+            <tr>
+                <th>联赛</th>
+                <th>级别</th>
+                <th>当前ELO</th>
+                <th>峰值ELO</th>
+                <th>最低ELO</th>
+                <th>场次</th>
+                <th>选秀顺位</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in elo_records %}
+            <tr>
+                <td>{{ record.league_name }}</td>
+                <td>Tier {{ record.tier }}</td>
+                <td class="elo">{{ "%.0f"|format(record.current_elo) }}</td>
+                <td>{{ "%.0f"|format(record.peak_elo) }}</td>
+                <td>{{ "%.0f"|format(record.lowest_elo) }}</td>
+                <td>{{ record.matches_played }}</td>
+                <td>{{ record.draft_position or 'N/A' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="matches-section">
+    <h2>🔥 比赛历史</h2>
+    <table class="rankings-table">
+        <thead>
+            <tr>
+                <th>联赛</th>
+                <th>周次</th>
+                <th>对手</th>
+                <th>结果</th>
+                <th>ELO变化</th>
+                <th>赛后ELO</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in elo_history %}
+            <tr>
+                <td>{{ match.league_name }}</td>
+                <td>Week {{ match.week }}</td>
+                <td>{{ match.opponent_name }}</td>
+                <td>
+                    {% if match.result == 'WIN' %}
+                        <span style="color: green; font-weight: bold;">胜</span>
+                    {% elif match.result == 'LOSS' %}
+                        <span style="color: red;">负</span>
+                    {% else %}
+                        <span style="color: gray;">平</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if match.elo_change > 0 %}
+                        <span style="color: green;">+{{ "%.1f"|format(match.elo_change) }}</span>
+                    {% else %}
+                        <span style="color: red;">{{ "%.1f"|format(match.elo_change) }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ "%.0f"|format(match.elo_after) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

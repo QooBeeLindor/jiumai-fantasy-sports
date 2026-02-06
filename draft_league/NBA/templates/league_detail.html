@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}{{ league.name }} - NBA蛇形选秀联赛{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>{{ league.name }}</h1>
+    <p class="subtitle">Yahoo联赛ID: {{ league.yahoo_id }} | 初始ELO: {{ league.initial_elo }}</p>
+</div>
+
+<div class="rankings-section">
+    <h2>📊 ELO排行榜</h2>
+    <table class="rankings-table">
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>玩家</th>
+                <th>当前ELO</th>
+                <th>峰值ELO</th>
+                <th>最低ELO</th>
+                <th>场次</th>
+                <th>选秀顺位</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player in rankings %}
+            <tr>
+                <td class="rank">{{ loop.index }}</td>
+                <td><a href="/player/{{ player.id }}">{{ player.unified_name }}</a></td>
+                <td class="elo">{{ "%.0f"|format(player.current_elo) }}</td>
+                <td>{{ "%.0f"|format(player.peak_elo) }}</td>
+                <td>{{ "%.0f"|format(player.lowest_elo) }}</td>
+                <td>{{ player.matches_played }}</td>
+                <td>{{ player.draft_position }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="matches-section">
+    <h2>🔥 最近比赛</h2>
+    <div class="matches-list">
+        {% for match in recent_matches %}
+        <div class="match-card">
+            <div class="match-week">Week {{ match.week }}</div>
+            <div class="match-players">
+                <div class="player {% if match.winner_id == match.player1_id %}winner{% endif %}">
+                    <span>{{ match.player1_name }}</span>
+                    <span class="score">{{ "%.1f"|format(match.score1) }}</span>
+                </div>
+                <div class="vs">VS</div>
+                <div class="player {% if match.winner_id == match.player2_id %}winner{% endif %}">
+                    <span>{{ match.player2_name }}</span>
+                    <span class="score">{{ "%.1f"|format(match.score2) }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

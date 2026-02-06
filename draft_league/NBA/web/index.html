@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Draft League - 数据中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        .card-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .card-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #111827;
+        }
+        .card-desc {
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .card-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 3px;
+        }
+        .footer {
+            text-align: center;
+            color: white;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            color: white;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        .status-dot.offline {
+            background: #ef4444;
+            animation: none;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #dbeafe;
+            color: #1e40af;
+            margin-top: 10px;
+        }
+        .badge.new {
+            background: #dcfce7;
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏀 NBA Draft League</h1>
+            <p>数据分析中心 - 2025-26赛季</p>
+            <div class="status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">正在检查API状态...</span>
+            </div>
+        </div>
+
+        <div class="cards">
+            <a href="adp_simple.html" class="card">
+                <div class="card-icon">📊</div>
+                <div class="card-title">ADP 排行榜</div>
+                <div class="card-desc">
+                    查看所有球员的平均选秀位（ADP）排名，包括被选次数、选秀范围等详细数据
+                </div>
+                <div class="card-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="adpPlayers">-</div>
+                        <div class="stat-label">球员数</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="adpDrafted">-</div>
+                        <div class="stat-label">全选球员</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">联赛数</div>
+                    </div>
+                </div>
+            </a>
+
+            <a href="standings.html" class="card">
+                <div class="card-icon">🏆</div>
+                <div class="card-title">战绩排行榜</div>
+                <div class="badge new">最新</div>
+                <div class="card-desc">
+                    查看所有玩家的战绩统计，包括胜负记录、胜率、连胜情况等
+                </div>
+                <div class="card-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="standingsPlayers">-</div>
+                        <div class="stat-label">玩家数</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="standingsMatches">-</div>
+                        <div class="stat-label">总比赛</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="topWinRate">-</div>
+                        <div class="stat-label">最高胜率</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>NBA Draft League 数据系统 v2.0</p>
+            <p style="margin-top: 5px; font-size: 12px;">
+                数据更新时间: 2026-02-04
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001';
+        
+        // 检查API状态
+        async function checkAPIStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/health`);
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    statusDot.classList.remove('offline');
+                    statusText.textContent = 'API服务运行正常';
+                    loadStats();
+                } else {
+                    throw new Error('API返回错误');
+                }
+            } catch (error) {
+                statusDot.classList.add('offline');
+                statusText.textContent = 'API服务未运行 - 请先启动 standings_api.py';
+                console.error('API检查失败:', error);
+            }
+        }
+
+        // 加载统计数据
+        async function loadStats() {
+            // 加载ADP统计
+            try {
+                const adpResponse = await fetch(`${API_BASE}/api/adp/stats`);
+                const adpData = await adpResponse.json();
+                
+                if (adpData.success) {
+                    document.getElementById('adpPlayers').textContent = adpData.data.total_players;
+                    document.getElementById('adpDrafted').textContent = adpData.data.fully_drafted;
+                }
+            } catch (error) {
+                console.error('加载ADP统计失败:', error);
+            }
+
+            // 加载战绩统计
+            try {
+                const standingsResponse = await fetch(`${API_BASE}/api/standings/stats`);
+                const standingsData = await standingsResponse.json();
+                
+                if (standingsData.success) {
+                    const stats = standingsData.data;
+                    document.getElementById('standingsPlayers').textContent = stats.total_players;
+                    document.getElementById('standingsMatches').textContent = stats.total_matches;
+                    
+                    if (stats.top_player) {
+                        document.getElementById('topWinRate').textContent = 
+                            `${stats.top_player.win_percentage}%`;
+                    }
+                }
+            } catch (error) {
+                console.error('加载战绩统计失败:', error);
+            }
+        }
+
+        // 初始化
+        checkAPIStatus();
+    </script>
+</body>
+</html>

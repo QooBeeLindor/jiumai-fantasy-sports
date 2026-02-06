@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>比赛日历 - NBA Draft League</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f3f4f6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            opacity: 0.9;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #8b5cf6;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        label {
+            font-weight: 600;
+            color: #374151;
+            margin-right: 10px;
+        }
+        select, button {
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+        select:focus, button:focus {
+            border-color: #8b5cf6;
+        }
+        button {
+            background: #8b5cf6;
+            color: white;
+            border-color: #8b5cf6;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #7c3aed;
+        }
+        button:disabled {
+            background: #d1d5db;
+            border-color: #d1d5db;
+            cursor: not-allowed;
+        }
+        .week-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .week-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #374151;
+            padding: 0 15px;
+        }
+        .league-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .league-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .league-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #111827;
+        }
+        .league-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .tier-1 { background: #fef3c7; color: #92400e; }
+        .tier-2 { background: #e0e7ff; color: #3730a3; }
+        .tier-3 { background: #dbeafe; color: #1e40af; }
+        .tier-4 { background: #dcfce7; color: #166534; }
+        .matches-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 15px;
+        }
+        .match-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.2s;
+        }
+        .match-card:hover {
+            border-color: #8b5cf6;
+            box-shadow: 0 2px 8px rgba(139,92,246,0.2);
+        }
+        .match-card.win-1 {
+            border-left: 4px solid #059669;
+        }
+        .match-card.win-2 {
+            border-right: 4px solid #059669;
+        }
+        .match-card.tie {
+            border-left: 4px solid #6b7280;
+            border-right: 4px solid #6b7280;
+        }
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .match-vs {
+            font-size: 12px;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+        .match-players {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .player {
+            flex: 1;
+            text-align: center;
+        }
+        .player-name {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .player-name.winner {
+            color: #059669;
+        }
+        .player-score {
+            font-size: 28px;
+            font-weight: bold;
+            color: #6b7280;
+        }
+        .player-score.winner {
+            color: #059669;
+        }
+        .vs-divider {
+            padding: 0 15px;
+            color: #d1d5db;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .info-text {
+            text-align: center;
+            color: #6b7280;
+            padding: 40px;
+        }
+        .empty-week {
+            background: white;
+            padding: 60px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .empty-week-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        .empty-week-text {
+            font-size: 18px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📅 比赛日历</h1>
+            <p class="subtitle">2025-26 赛季对阵表</p>
+        </header>
+
+        <!-- 统计概览 -->
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">总周数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">当前周</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">总比赛数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">本周比赛</div>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="controls">
+            <div class="control-row">
+                <div class="week-nav">
+                    <button id="prevWeek">⬅ 上一周</button>
+                    <div class="week-display">第 <span id="currentWeek">-</span> 周</div>
+                    <button id="nextWeek">下一周 ➡</button>
+                </div>
+                <div>
+                    <label for="leagueFilter">联赛筛选：</label>
+                    <select id="leagueFilter">
+                        <option value="">所有联赛</option>
+                    </select>
+                </div>
+                <div style="margin-left: auto;">
+                    <button id="todayBtn">📍 最新周</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="error"></div>
+
+        <!-- 比赛内容区 -->
+        <div id="matchesContainer">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001';
+        let currentWeek = 1;
+        let maxWeek = 1;
+        let minWeek = 1;
+        let allWeeks = [];
+        let leagues = [];
+
+        // 加载统计数据
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/schedule/stats`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.data;
+                    const statCards = document.querySelectorAll('.stat-card');
+                    statCards[0].querySelector('.stat-value').textContent = stats.total_weeks;
+                    statCards[1].querySelector('.stat-value').textContent = `第${stats.current_week}周`;
+                    statCards[2].querySelector('.stat-value').textContent = stats.total_matches;
+                    statCards[3].querySelector('.stat-value').textContent = stats.current_week_matches;
+                    
+                    currentWeek = stats.current_week;
+                    maxWeek = stats.current_week;
+                    minWeek = stats.first_week;
+                    
+                    updateWeekDisplay();
+                    updateButtons();
+                }
+            } catch (error) {
+                console.error('加载统计失败:', error);
+            }
+        }
+
+        // 加载周次列表
+        async function loadWeeks() {
+            try {
+                const response = await fetch(`${API_BASE}/api/schedule/weeks`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    allWeeks = data.data;
+                }
+            } catch (error) {
+                console.error('加载周次列表失败:', error);
+            }
+        }
+
+        // 加载联赛列表
+        async function loadLeagues() {
+            try {
+                const response = await fetch(`${API_BASE}/api/standings/leagues`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    leagues = data.data;
+                    const select = document.getElementById('leagueFilter');
+                    
+                    leagues.forEach(league => {
+                        const option = document.createElement('option');
+                        option.value = league.id;
+                        option.textContent = league.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载联赛列表失败:', error);
+            }
+        }
+
+        // 加载指定周的比赛
+        async function loadWeekMatches(week) {
+            const container = document.getElementById('matchesContainer');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+            
+            const leagueId = document.getElementById('leagueFilter').value;
+            
+            try {
+                const params = new URLSearchParams();
+                if (leagueId) params.append('league_id', leagueId);
+                
+                const response = await fetch(`${API_BASE}/api/schedule/week/${week}?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderMatches(data.data);
+                } else {
+                    showError('加载失败：' + data.error);
+                }
+            } catch (error) {
+                showError('无法连接到API服务器');
+                console.error('加载比赛失败:', error);
+            }
+        }
+
+        // 渲染比赛
+        function renderMatches(weekData) {
+            const container = document.getElementById('matchesContainer');
+            
+            if (!weekData.leagues || weekData.leagues.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-week">
+                        <div class="empty-week-icon">📭</div>
+                        <div class="empty-week-text">本周没有比赛</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            
+            weekData.leagues.forEach(league => {
+                html += `
+                    <div class="league-section">
+                        <div class="league-header">
+                            <div class="league-name">${league.league_name}</div>
+                            <span class="league-badge tier-${league.tier}">Tier ${league.tier}</span>
+                        </div>
+                        <div class="matches-grid">
+                            ${league.matches.map(match => renderMatch(match)).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // 渲染单场比赛
+        function renderMatch(match) {
+            let matchClass = '';
+            let player1Class = '';
+            let player2Class = '';
+            
+            if (match.winner === 1) {
+                matchClass = 'win-1';
+                player1Class = 'winner';
+            } else if (match.winner === 2) {
+                matchClass = 'win-2';
+                player2Class = 'winner';
+            } else if (match.winner === 0) {
+                matchClass = 'tie';
+            }
+            
+            return `
+                <div class="match-card ${matchClass}">
+                    <div class="match-header">
+                        <span class="match-vs">对阵</span>
+                    </div>
+                    <div class="match-players">
+                        <div class="player">
+                            <div class="player-name ${player1Class}">${match.player1_name}</div>
+                            <div class="player-score ${player1Class}">${match.score1}</div>
+                        </div>
+                        <div class="vs-divider">VS</div>
+                        <div class="player">
+                            <div class="player-name ${player2Class}">${match.player2_name}</div>
+                            <div class="player-score ${player2Class}">${match.score2}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 更新周次显示
+        function updateWeekDisplay() {
+            document.getElementById('currentWeek').textContent = currentWeek;
+        }
+
+        // 更新按钮状态
+        function updateButtons() {
+            const prevBtn = document.getElementById('prevWeek');
+            const nextBtn = document.getElementById('nextWeek');
+            
+            prevBtn.disabled = currentWeek <= minWeek;
+            nextBtn.disabled = currentWeek >= maxWeek;
+        }
+
+        // 显示错误
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+
+        // 事件监听
+        document.getElementById('prevWeek').addEventListener('click', () => {
+            if (currentWeek > minWeek) {
+                currentWeek--;
+                updateWeekDisplay();
+                updateButtons();
+                loadWeekMatches(currentWeek);
+            }
+        });
+
+        document.getElementById('nextWeek').addEventListener('click', () => {
+            if (currentWeek < maxWeek) {
+                currentWeek++;
+                updateWeekDisplay();
+                updateButtons();
+                loadWeekMatches(currentWeek);
+            }
+        });
+
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            currentWeek = maxWeek;
+            updateWeekDisplay();
+            updateButtons();
+            loadWeekMatches(currentWeek);
+        });
+
+        document.getElementById('leagueFilter').addEventListener('change', () => {
+            loadWeekMatches(currentWeek);
+        });
+
+        // 初始化
+        async function init() {
+            await loadStats();
+            await loadWeeks();
+            await loadLeagues();
+            loadWeekMatches(currentWeek);
+        }
+
+        init();
+    </script>
+</body>
+</html>

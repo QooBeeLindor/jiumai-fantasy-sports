@@ -1,0 +1,24 @@
+# NBA Draft League - Python Dependencies
+
+# Web Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+
+# Werkzeug (Flask dependency)
+werkzeug>=3.1.0
+
+# 如果需要更好的生产环境WSGI服务器，可以取消注释
+# gunicorn==21.2.0
+# waitress==2.1.2
+
+# Database - SQLite (Python内置，无需额外安装)
+
+# Yahoo Fantasy API (如果需要)
+# yahoo-fantasy-api==2.5.0
+
+# 安装命令:
+# pip install -r requirements.txt
+# 或在Ubuntu 22.04上:
+# pip3 install -r requirements.txt
+# 或（如果遇到权限问题）:
+# pip3 install Flask Flask-CORS

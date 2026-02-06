@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玩家积分排行 - 九麦Draft League</title>
+    <link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1>🏀 九麦Draft League</h1>
+            <ul class="nav-links">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="rankings.html" class="active">玩家积分</a></li>
+                <li><a href="matches.html">比赛记录</a></li>
+                <li><a href="leagues.html">联赛对比</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <section class="hero">
+            <h2>🏆 ELO积分排行榜</h2>
+            
+            <div class="filters">
+                <label>
+                    <span>联赛筛选：</span>
+                    <select id="league-filter">
+                        <option value="">全部联赛</option>
+                    </select>
+                </label>
+                <label>
+                    <span>级别筛选：</span>
+                    <select id="tier-filter">
+                        <option value="">全部级别</option>
+                        <option value="1">一级盟</option>
+                        <option value="2">二级盟</option>
+                        <option value="3">三级盟</option>
+                        <option value="4">四级盟</option>
+                    </select>
+                </label>
+            </div>
+        </section>
+
+        <section class="content-full">
+            <div class="rankings-full">
+                <table id="rankings-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>玩家</th>
+                            <th>联赛</th>
+                            <th>级别</th>
+                            <th>选秀顺位</th>
+                            <th>ELO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="6" style="text-align:center;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="legend">
+            <h3>📊 升降级说明</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <span class="badge promote">↑</span> 升级区
+                </div>
+                <div class="legend-item">
+                    <span class="badge safe">-</span> 安全区
+                </div>
+                <div class="legend-item">
+                    <span class="badge relegate">↓</span> 降级区
+                </div>
+            </div>
+            <p><strong>升降级规则：</strong></p>
+            <ul>
+                <li>一级盟：后6名降级</li>
+                <li>二级盟：前2名升级，后4名降级</li>
+                <li>三级盟：前3名升级，后4名降级</li>
+                <li>四级盟：前4名升级</li>
+            </ul>
+        </section>
+    </div>
+
+    <footer>
+        <p>© 2025 九麦范特西联赛 | ELO算法参考 <a href="http://129.204.8.241/NBA/waiverleague/algorithm" target="_blank">Waiver League</a></p>
+    </footer>
+
+    <script src="js/rankings.js"></script>
+</body>
+</html>

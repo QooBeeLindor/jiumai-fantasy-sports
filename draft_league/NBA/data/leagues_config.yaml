@@ -1,0 +1,148 @@
+# 九麦NBA蛇形选秀联赛配置文件
+# 2025-26赛季
+
+season: 2026
+
+leagues:
+  # 一级盟 (Tier 1)
+  - id: 1
+    name: NBA大师盟
+    tier: 1
+    yahoo_id: "466.l.2480"
+    league_key: "2480"
+    url: "https://basketball.fantasysports.yahoo.com/nba/2480"
+    teams_count: 16
+    promotion_slots: 0
+    relegation_slots: 6  # 后6降级
+    
+  # 二级盟 (Tier 2)
+  - id: 2
+    name: WEST盟
+    tier: 2
+    yahoo_id: "466.l.43705"
+    league_key: "43705"
+    url: "https://basketball.fantasysports.yahoo.com/nba/43705"
+    teams_count: 16
+    promotion_slots: 2  # 季后赛前2升级
+    relegation_slots: 4  # 常规赛后4降级
+    
+  - id: 3
+    name: EAST盟
+    tier: 2
+    yahoo_id: "466.l.77265"
+    league_key: "77265"
+    url: "https://basketball.fantasysports.yahoo.com/nba/77265"
+    teams_count: 16
+    promotion_slots: 2
+    relegation_slots: 4
+    
+  - id: 4
+    name: CENTRAL盟
+    tier: 2
+    yahoo_id: "466.l.184003"
+    league_key: "184003"
+    url: "https://basketball.fantasysports.yahoo.com/nba/184003"
+    teams_count: 16
+    promotion_slots: 2
+    relegation_slots: 4
+    
+  # 三级盟 (Tier 3)
+  - id: 5
+    name: 暴扣盟
+    tier: 3
+    yahoo_id: "466.l.21587"
+    league_key: "21587"
+    url: "https://basketball.fantasysports.yahoo.com/nba/21587"
+    teams_count: 16
+    promotion_slots: 3  # 季后赛前3升级
+    relegation_slots: 4  # 常规赛后4降级
+    
+  - id: 6
+    name: 绝杀盟
+    tier: 3
+    yahoo_id: "466.l.184016"
+    league_key: "184016"
+    url: "https://basketball.fantasysports.yahoo.com/nba/184016"
+    teams_count: 16
+    promotion_slots: 3
+    relegation_slots: 4
+    
+  - id: 7
+    name: 摘帽盟
+    tier: 3
+    yahoo_id: "466.l.184036"
+    league_key: "184036"
+    url: "https://basketball.fantasysports.yahoo.com/nba/184036"
+    teams_count: 16
+    promotion_slots: 3
+    relegation_slots: 4
+    
+  - id: 8
+    name: 勾手盟
+    tier: 3
+    yahoo_id: "466.l.170361"
+    league_key: "170361"
+    url: "https://basketball.fantasysports.yahoo.com/nba/170361"
+    teams_count: 16
+    promotion_slots: 3
+    relegation_slots: 4
+    
+  # 四级盟 (Tier 4)
+  - id: 9
+    name: 力劈华山盟
+    tier: 4
+    yahoo_id: "466.l.184087"
+    league_key: "184087"
+    url: "https://basketball.fantasysports.yahoo.com/nba/184087"
+    teams_count: 16
+    promotion_slots: 4  # 季后赛前4升级
+    relegation_slots: 0
+    
+  - id: 10
+    name: 旱地拔葱盟
+    tier: 4
+    yahoo_id: "466.l.184105"
+    league_key: "184105"
+    url: "https://basketball.fantasysports.yahoo.com/nba/184105"
+    teams_count: 16
+    promotion_slots: 4
+    relegation_slots: 0
+    
+  - id: 11
+    name: 鹰击长空盟
+    tier: 4
+    yahoo_id: "466.l.184113"
+    league_key: "184113"
+    url: "https://basketball.fantasysports.yahoo.com/nba/184113"
+    teams_count: 16
+    promotion_slots: 4
+    relegation_slots: 0
+    
+  - id: 12
+    name: 凌空飞渡盟
+    tier: 4
+    yahoo_id: "466.l.184121"
+    league_key: "184121"
+    url: "https://basketball.fantasysports.yahoo.com/nba/184121"
+    teams_count: 16
+    promotion_slots: 4
+    relegation_slots: 0
+
+# 赛制设置
+settings:
+  regular_season_weeks: 20
+  playoff_weeks: 4
+  total_weeks: 24
+  scoring_categories: 11
+  categories:
+    - FGM  # 投篮命中数
+    - FG%  # 投篮命中率
+    - FTM  # 罚球命中数
+    - FT%  # 罚球命中率
+    - 3PM  # 三分命中数
+    - PTS  # 得分
+    - REB  # 篮板
+    - AST  # 助攻
+    - STL  # 抢断
+    - BLK  # 盖帽
+    - TO   # 失误
