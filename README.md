@@ -1,270 +1,410 @@
-# 🏆 九麦Fantasy体育联赛系统
+# 🏆 九麦范特西体育数据系统 (Jiumai Fantasy Sports)
 
-九麦Fantasy体育联赛管理系统，目前包含NBA竞价选秀联赛ELO系统、铁人个人赛和铁人团队赛三个子系统。
+一个包含**四个独立系统**的综合性范特西体育数据平台，覆盖NBA、MLB、NFL、NHL、EPL等多个联赛。
 
-## 📊 系统概况
+## 🌐 在线访问
 
-### 已部署的系统
+**主站**: https://jiumaifantasy.online  
+**备用IP**: http://129.204.8.241
 
-| 系统 | 访问地址 | 状态 |
-|------|---------|------|
-| NBA竞价选秀ELO | [jiumaifantasy.online](http://jiumaifantasy.online) | ✅ |
-| 铁人个人赛 | [jiumaifantasy.online/ironman](http://jiumaifantasy.online/ironman/individual) | ✅ |
-| 铁人团队赛 | [jiumaifantasy.online/irongroup](http://jiumaifantasy.online/irongroup/leaderboard) | ✅ |
+## 📊 四大系统概览
 
-### 服务器信息
-- **域名:** jiumaifantasy.online
-- **备用IP:** 129.204.8.241
-- **服务器:** Ubuntu 24 (中国大陆)
+### 1. 🏀 NBA Waiver League (ELO系统)
+**路径**: `/NBA/waiverleague/`  
+**端口**: 5000  
+**访问**: http://jiumaifantasy.online/NBA/waiverleague/
 
----
+- 5个联赛，80支队伍，80名球员
+- 专业ELO评分算法
+- 11项数据指标平局调整
+- 动态K因子计算
+- 每周ELO追踪
+- 算法说明（含数学公式）
+- 队伍花名册查看
 
-## ⭐ Three Systems Overview
+### 2. 🎯 铁人个人赛 (Ironman Individual)
+**路径**: `/ironman/`  
+**端口**: 5001  
+**访问**: http://jiumaifantasy.online/ironman/
 
-### 1. NBA竞价选秀联赛 ELO System (Port 5000)
-- 5 leagues (80 teams, 80 players)
-- Professional ELO rating algorithm
-- 11-category tie adjustment
-- Dynamic K-factor
-- Weekly ELO tracking
-- Algorithm explanation with math formulas
-- Team roster viewing
+- 16名球员跨4个联赛竞争（MLB、NFL、NHL、NBA）
+- 常规赛 + 季后赛积分
+- 实时排名和统计
+- 球员详情页面
 
-### 2. 铁人个人赛 (ironman) (Port 5001)
-16位选手在4个联赛中竞技：MLB、NFL、NHL、NBA
+### 3. 🏆 铁人团队赛 (Ironman Team)
+**路径**: `/irongroup/`  
+**端口**: 5002  
+**访问**: http://jiumaifantasy.online/irongroup/
 
-#### 积分规则
-- **Roto积分**: 根据常规赛排名
-- **Bonus积分**: 根据季后赛排名
+- 12支队伍跨5个联赛竞争（MLB、NFL、NHL、NBA、EPL）
+- Power Ranking整合
+- 进行中联赛的预期得分
+- 队伍成员追踪
 
-### 3. 铁人团队赛 (irongroup) (Port 5002)
-12支战队在5个联赛中竞技：MLB、NFL、NHL、NBA、EPL
+### 4. 🏀 NBA Draft League (蛇形选秀)
+**路径**: `/NBA/draftleague/`  
+**端口**: 5003  
+**访问**: http://jiumaifantasy.online/NBA/draftleague/
 
-#### 积分规则
-每个联赛的总分 = **季后赛积分** + **常规赛bonus**
+- 12个蛇形选秀联赛，192支队伍
+- Overall Roto综合排名
+- 分盟详细排名
+- ADP分析
+- FA排行榜
+- 赛程系统
 
-- **季后赛积分** (13-3分): 根据季后赛排名，全部12队
-- **常规赛bonus** (3-0.5分): 根据常规赛排名，只有前4名
+## 🎯 系统对比
 
-详见：[irongroup/README_IRONGROUP.md](./irongroup/README_IRONGROUP.md)
+| 特性 | NBA Waiver | 铁人个人赛 | 铁人团队赛 | NBA Draft |
+|------|-----------|-----------|-----------|-----------|
+| 规模 | 80人/5联赛 | 16人/4联赛 | 12队/5联赛 | 192队/12联赛 |
+| 评分 | ELO评级 | 固定规则 | 固定规则 | Roto积分 |
+| 路由数 | 7 | 3 | 5 | 8 |
+| 模板数 | 8 | 3 | 3 | 1 (React) |
+| 数据库表 | 4 | 9 | 6 | 5 |
+| 端口 | 5000 | 5001 | 5002 | 5003 |
+| 技术栈 | Flask + Jinja2 | Flask + Jinja2 | Flask + Jinja2 | Flask + React |
 
-## 🔧 数据更新工作流
+## 🚀 快速开始
 
-### ⚠️ 重要说明
-
-由于Yahoo Fantasy API在中国大陆被封锁，**无法直接在服务器上同步数据**。
-
-### 正确的数据更新流程
-
-#### Step 1: 本地同步数据
-在**本地Windows电脑**执行：
-
-```bash
-# 同步个人赛
-cd /d G:\ironman
-python sync_yahoo_standings.py ironman.db oauth2.json
-
-# 同步团队赛
-cd /d G:\irongroup
-python sync_team_yahoo_simple.py irongroup.db oauth2.json
-```
-
-#### Step 2: 上传数据库
-用**WinSCP**上传：
-- `G:\ironman\ironman.db` → `/var/www/ironman/ironman.db`
-- `G:\irongroup\irongroup.db` → `/var/www/irongroup/irongroup.db`
-
-#### Step 3: 重启服务
-**SSH**到服务器重启应用：
+### 环境要求
 
 ```bash
-# 重启个人赛
-sudo supervisorctl restart ironman
-
-# 重启团队赛
-cd /var/www/irongroup
-pkill -f "gunicorn.*irongroup"
-source venv/bin/activate
-nohup gunicorn --bind 127.0.0.1:5002 --workers 2 irongroup_app:app > irongroup.log 2>&1 &
+Python 3.8+
+Node.js 18+ (仅NBA Draft League)
+pip
+virtualenv (推荐)
 ```
 
-#### Step 4: 验证更新
-访问网站确认数据已更新
+### 安装步骤
 
----
+```bash
+# 克隆仓库
+git clone https://github.com/QooBeeLindor/jiumai-fantasy-sports.git
+cd jiumai-fantasy-sports
+
+# 创建虚拟环境
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 安装Python依赖
+pip install -r requirements.txt
+
+# NBA Draft League需要额外构建React前端
+cd draft_league/NBA/react-frontend
+npm install
+npm run build
+```
+
+### 本地运行
+
+```bash
+# NBA Waiver League
+cd nba_elo
+python app.py  # http://localhost:5000
+
+# 铁人个人赛
+cd ironman
+python ironman_app.py  # http://localhost:5001
+
+# 铁人团队赛
+cd irongroup
+python irongroup_app.py  # http://localhost:5002
+
+# NBA Draft League
+cd draft_league/NBA
+python complete_api_final.py  # http://localhost:5003
+```
 
 ## 📁 项目结构
 
 ```
 jiumai-fantasy-sports/
-├── README.md                    # 本文件
-├── 维护指南_v2.0.md              # 详细维护文档 ⭐
+├── nba_elo/                    # NBA Waiver League (ELO系统)
+│   ├── app.py
+│   ├── calculate_elo.py
+│   ├── templates/
+│   └── static/
 │
-├── irongroup/                   # 铁人团队赛
-│   ├── README.md                # irongroup说明
-│   ├── sync_team_yahoo_simple.py
-│   ├── update_epl_bonus.py
-│   └── (其他更新脚本)
-│
-├── ironman/                     # 铁人个人赛
+├── ironman/                    # 铁人个人赛
+│   ├── ironman_app.py
 │   ├── sync_yahoo_standings.py
-│   └── (其他脚本)
+│   ├── templates/
+│   └── ironman.db
 │
-├── nba_elo/                     # NBA ELO系统
-│   └── (相关文件)
+├── irongroup/                  # 铁人团队赛
+│   ├── irongroup_app.py
+│   ├── sync_team_yahoo_simple.py
+│   ├── templates/
+│   └── irongroup.db
 │
-└── docs/                        # 文档
-    ├── database_schema.md       # 数据库结构
-    └── (其他文档)
+├── draft_league/NBA/           # NBA Draft League
+│   ├── complete_api_final.py
+│   ├── fetch_league_standings.py
+│   ├── react-frontend/         # React前端
+│   │   ├── src/
+│   │   ├── public/
+│   │   └── dist/
+│   ├── database/
+│   │   └── draft_league.db
+│   └── *.json                  # 数据文件
+│
+├── data/                       # 数据库schemas
+├── docs/                       # 文档
+├── deployment/                 # 部署配置
+└── requirements.txt
 ```
 
----
+## 🔄 数据同步
 
-## 📖 文档索引
+### NBA Waiver League
 
-### 核心文档
-- **[维护指南_v2.0.md](./维护指南_v2.0.md)** ⭐ - 完整的系统维护指南
-- **[irongroup/README.md](./irongroup/README.md)** - 团队赛详细说明
-- **[docs/database_schema.md](./docs/database_schema.md)** - 数据库结构说明
+```bash
+cd nba_elo
+python calculate_elo.py  # 计算ELO评分
+```
 
-### 开发文档
-- **项目路线图**: 参见下方"项目进度"章节
+### 铁人个人赛
 
----
+```bash
+cd ironman
+python sync_yahoo_standings.py
+```
 
-## 🚀 快速开始
+### 铁人团队赛
 
-### 新用户
-1. 阅读 [维护指南_v2.0.md](./维护指南_v2.0.md)
-2. 了解数据更新流程（见上方）
-3. 查看对应子系统的README
+```bash
+cd irongroup
+python sync_team_yahoo_simple.py irongroup.db oauth2.json
+```
 
-### 每周维护
-1. 本地运行数据同步脚本
-2. 上传数据库到服务器
-3. 重启服务
+### NBA Draft League
 
-**详细步骤:** [维护指南_v2.0.md](./维护指南_v2.0.md)
+```bash
+cd draft_league/NBA
+python fetch_league_standings.py  # 生成JSON数据文件
+# 然后上传JSON文件到服务器
+```
 
----
+## 🌐 部署架构
 
-## 📅 项目进度
+### 服务器配置
 
-### ✅ 已完成
+```
+服务器: 129.204.8.241 (jiumaifantasy.online)
+操作系统: Ubuntu 22.04 LTS
+Web服务器: Nginx 1.18.0
+进程管理: systemd
+用户: ubuntu
+```
 
-#### 系统部署
-- [x] NBA竞价选秀ELO系统
-- [x] 铁人个人赛系统
-- [x] 铁人团队赛系统
-- [x] 域名和SSL配置
+### Nginx配置
 
-#### 数据同步
-- [x] Yahoo API OAuth认证
-- [x] NHL/NBA数据自动同步（本地）
-- [x] 数据库上传流程
+```nginx
+server {
+    listen 80;
+    server_name jiumaifantasy.online 129.204.8.241;
+    
+    # 根路径重定向
+    location = / {
+        return 301 /NBA/waiverleague/;
+    }
+    
+    # NBA Waiver League
+    location /NBA/waiverleague/ {
+        proxy_pass http://127.0.0.1:5000/;
+    }
+    
+    # 铁人个人赛
+    location /ironman/ {
+        proxy_pass http://127.0.0.1:5001;
+    }
+    
+    # 铁人团队赛
+    location /irongroup/ {
+        proxy_pass http://127.0.0.1:5002;
+    }
+    
+    # NBA Draft League - 前端
+    location /NBA/draftleague {
+        alias /var/www/nba-app/dist;
+        try_files $uri $uri/ /NBA/draftleague/index.html;
+    }
+    
+    # NBA Draft League - API
+    location /NBA/draftleague/api {
+        rewrite ^/NBA/draftleague/api(.*)$ /api$1 break;
+        proxy_pass http://127.0.0.1:5003;
+    }
+}
+```
 
-#### 团队赛功能 (irongroup)
-- [x] EPL常规赛bonus更新工具 (2026-01-20)
-- [x] 自适应积分显示逻辑
-- [x] 团队详情页面
+### systemd服务
 
-### 🔄 进行中
+所有系统都配置为systemd服务，实现：
+- 开机自启动
+- 自动故障重启
+- 日志管理
+- 进程监控
 
-#### 团队赛 (irongroup)
-- [ ] EPL季后赛积分更新（等待EPL季后赛开始）
-- [ ] NHL常规赛bonus更新（等待常规赛结束）
-- [ ] NBA常规赛bonus更新（等待常规赛结束）
+```bash
+# 服务管理
+sudo systemctl status nba-waiver      # NBA Waiver League
+sudo systemctl status ironman-api     # 铁人个人赛
+sudo systemctl status irongroup-api   # 铁人团队赛
+sudo systemctl status nba-api         # NBA Draft League
+```
 
-### ⏭ 待处理
+## 📚 文档
 
-#### 短期（本赛季）
-- [ ] 其他联赛季后赛更新工具
-  - [ ] NHL季后赛积分
-  - [ ] NBA季后赛积分
-  - [ ] NFL季后赛积分（如适用）
+- **新对话指南**: `docs/FOR_NEW_CONVERSATIONS.md`
+- **完整技术文档**: `docs/项目完整文档_新对话专用.md`
+- **维护指南**: `docs/维护指南_v2.0.md`
+- **代码参考**: `docs/CODE_REFERENCE.md`
+- **项目路线图**: `JIUMAI_FANTASY_PROJECT_ROADMAP.md`
+- **完成指南**: `PROJECT_COMPLETION_GUIDE_v2.1.md`
 
-#### 中期（1-2个月）
-- [ ] 创建通用联赛更新工具
-- [ ] EPL数据同步（Fantrax API）
-- [ ] Web管理后台（数据更新界面）
+### 各系统文档
 
-#### 长期（3-6个月）
-- [ ] 迁移到海外服务器（解决Yahoo API访问问题）
-- [ ] 自动化数据同步
-- [ ] 数据可视化（趋势图、对比图）
-- [ ] 监控和告警系统
+- **NBA Waiver League**: `nba_elo/README.md`
+- **铁人个人赛**: `ironman/README.md`
+- **铁人团队赛**: `irongroup/README.md`
+- **NBA Draft League**: `draft_league/README.md`
 
----
-
-## 💾 技术栈
+## 🛠️ 技术栈
 
 ### 后端
-- Python 3.x
-- Flask
-- SQLite
+- Python 3.8+
+- Flask 3.0
+- SQLite 3
 - Yahoo Fantasy API
-- Fantrax API (EPL)
 
 ### 前端
-- HTML5 / CSS3
-- JavaScript (Vanilla)
-- Responsive Design
+- **传统系统**: HTML5 + Bootstrap 5 + jQuery
+- **NBA Draft League**: React 18 + Vite + TailwindCSS
+
+### 工具库
+- Chart.js - 数据可视化
+- MathJax - 数学公式渲染
+- lucide-react - 图标库
 
 ### 部署
-- Nginx
-- Gunicorn
-- Supervisor
-- Ubuntu 24
+- Nginx - 反向代理
+- systemd - 进程管理
+- WinSCP - 文件传输
 
----
+## 🔐 配置说明
 
-## 🛠️ 常见问题
+### Yahoo API认证
 
-### Q: 为什么不能直接在服务器上同步数据？
-A: Yahoo Fantasy API在中国大陆被封锁（自2021年11月）。必须在本地同步后上传数据库。
+每个系统需要 `oauth2.json` 文件用于Yahoo API访问：
 
-### Q: 每周需要做什么维护？
-A: 在本地运行同步脚本 → 上传数据库 → 重启服务。总计约10分钟。
+```json
+{
+    "access_token": "...",
+    "consumer_key": "...",
+    "consumer_secret": "...",
+    "refresh_token": "...",
+    "token_time": 1234567890.123,
+    "token_type": "bearer"
+}
+```
 
-### Q: 常规赛/季后赛结束时需要做什么？
-A: 运行相应的bonus或playoff更新脚本，然后上传数据库。
+⚠️ **注意**: `oauth2.json` 文件不应上传到GitHub，已添加到 `.gitignore`
 
-### Q: 下赛季需要修改代码吗？
-A: 不需要。代码是自适应的，只需运行相应的数据更新脚本即可。
+### 环境变量
 
-更多问题见：[维护指南_v2.0.md](./维护指南_v2.0.md)
+NBA Draft League需要配置 `.env.production`:
 
----
+```bash
+VITE_API_URL=/NBA/draftleague
+```
 
-## 📞 支持
+## 📊 数据统计
 
-遇到问题请：
-1. 查看 [维护指南_v2.0.md](./维护指南_v2.0.md) 的故障排查章节
-2. 检查服务器日志
-3. 参考对应子系统的README
+| 系统 | 联赛数 | 队伍数 | 球员数 | 数据表 |
+|------|-------|--------|--------|--------|
+| NBA Waiver | 5 | 80 | 80 | 4 |
+| 铁人个人赛 | 4 | - | 16 | 9 |
+| 铁人团队赛 | 5 | 12 | - | 6 |
+| NBA Draft | 12 | 192 | 2000+ | 5 |
+| **总计** | **26** | **284** | **2096+** | **24** |
 
----
+## 🔧 维护
 
-## 📝 更新日志
+### 日常任务
 
-### 2026-01-20
-- ✅ 修复EPL显示问题（团队赛）
-- ✅ 创建EPL常规赛bonus更新工具
-- ✅ 优化积分显示逻辑（自适应）
-- ✅ 更新文档和维护指南
+- 每周更新数据（通过各系统的sync脚本）
+- 监控服务器状态
+- 查看错误日志
 
-### 2026-01-13
-- ✅ 更新维护指南v2.0
-- ✅ 确认Yahoo API访问问题
-- ✅ 建立本地同步工作流
+### 常用命令
 
----
+```bash
+# 查看所有服务状态
+sudo systemctl status nba-waiver ironman-api irongroup-api nba-api
+
+# 重启所有服务
+sudo systemctl restart nba-waiver ironman-api irongroup-api nba-api
+
+# 查看Nginx状态
+sudo systemctl status nginx
+
+# 查看日志
+sudo journalctl -u nba-api -f
+tail -f /var/www/nba-app/logs/api.log
+```
+
+## 🚧 开发路线图
+
+### 短期 (1-2周)
+- ✅ NBA Draft League系统上线
+- ⬜ 完成EPL数据同步
+- ⬜ 添加SSL/HTTPS支持
+
+### 中期 (1-2月)
+- ⬜ Web管理后台
+- ⬜ 自动化数据同步 (cron jobs)
+- ⬜ 数据可视化图表增强
+
+### 长期 (3-6月)
+- ⬜ 移动应用开发
+- ⬜ 实时推送通知
+- ⬜ 用户认证系统
+- ⬜ 更多联赛支持
+
+## 🤝 贡献
+
+这是九麦范特西联赛的私有项目，欢迎联赛成员贡献。
+
+### 如何贡献
+
+1. Fork 项目
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启Pull Request
 
 ## 📄 许可证
 
-本项目仅供内部使用。
+MIT License - 详见 [LICENSE](LICENSE) 文件
+
+## 📞 支持
+
+如有问题或建议，请：
+- 提交Issue
+- 联系联赛管理员
+- 查阅文档
+
+## 🙏 致谢
+
+感谢所有为项目做出贡献的联赛成员！
 
 ---
 
-**维护者:** QB 
-**最后更新:** 2026-01-20
+**Made with ❤️ for NBA Fantasy Basketball**
+
+**最后更新**: 2026-02-05  
+**维护者**: 九麦范特西联赛管理团队  
+**状态**: ✅ 所有系统运行正常

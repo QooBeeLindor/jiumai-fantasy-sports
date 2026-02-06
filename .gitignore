@@ -24,28 +24,104 @@ wheels/
 venv/
 ENV/
 env/
+.venv
 
-# Sensitive Files
-oauth2.json
-config.py
-*.db
-*.db-journal
-
-# Logs
-*.log
-
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.DS_Store
+
+# Logs
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Sensitive Configuration
+oauth2.json
+config.py
+.env
+.env.local
+.env.production
 
 # OS
-.DS_Store
 Thumbs.db
+.DS_Store
 
-# Backup files
-*.bak
-*.backup
-*.sql.backup
+# ====================
+# NBA Waiver League
+# ====================
+nba_elo/*.db
+nba_elo/oauth2.json
+nba_elo/__pycache__/
+
+# ====================
+# Ironman (Individual)
+# ====================
+ironman/*.db
+ironman/oauth2.json
+ironman/__pycache__/
+
+# ====================
+# Irongroup (Team)
+# ====================
+irongroup/*.db
+irongroup/oauth2.json
+irongroup/__pycache__/
+
+# ====================
+# NBA Draft League
+# ====================
+# 数据库文件
+draft_league/NBA/database/*.db
+draft_league/NBA/database/*.db-journal
+
+# 认证文件
+draft_league/NBA/oauth2.json
+
+# 数据文件（本地生成，不上传）
+draft_league/NBA/*.json
+draft_league/NBA/league_standings_*.json
+
+# React前端
+draft_league/NBA/react-frontend/node_modules/
+draft_league/NBA/react-frontend/dist/
+draft_league/NBA/react-frontend/.env.local
+draft_league/NBA/react-frontend/.env.production
+draft_league/NBA/react-frontend/npm-debug.log*
+draft_league/NBA/react-frontend/yarn-debug.log*
+draft_league/NBA/react-frontend/yarn-error.log*
+
+# Python缓存
+draft_league/NBA/__pycache__/
+
+# 日志
+draft_league/NBA/logs/*.log
+draft_league/NBA/logs/*.log.*
+
+# ====================
+# Documentation (Keep)
+# ====================
+# 不要忽略文档文件
+!README.md
+!*.md
+!docs/**/*.md
+
+# ====================
+# Example Files (Keep)
+# ====================
+# 保留示例配置文件
+!.env.example
+!.env.production.example
+!oauth2.json.example
+!config.example.py
