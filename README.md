@@ -7,7 +7,15 @@
 **主站**: https://jiumaifantasy.online  
 **备用IP**: http://129.204.8.241
 
+
 ## 📊 四大系统概览
+=======
+| 系统 | 访问地址 | 状态 |
+|------|---------|------|
+| NBA竞价选秀联赛ELO | [http://129.204.8.241/NBA/waiverleague/](http://129.204.8.241/NBA/waiverleague/) | ✅ |
+| 铁人个人赛 | [jiumaifantasy.online/ironman](http://jiumaifantasy.online/ironman/individual) | ✅ |
+| 铁人团队赛 | [jiumaifantasy.online/irongroup](http://jiumaifantasy.online/irongroup/leaderboard) | ✅ |
+| NBA蛇形选秀联赛 | [http://jiumaifantasy.online/NBA/draftleague](http://http://jiumaifantasy.online/NBA/) | ✅ |
 
 ### 1. 🏀 NBA Waiver League (ELO系统)
 **路径**: `/NBA/waiverleague/`  
